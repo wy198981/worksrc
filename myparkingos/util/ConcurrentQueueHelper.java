@@ -1,6 +1,6 @@
 package com.example.administrator.myparkingos.util;
 
-import com.example.administrator.myparkingos.model.ModelNode;
+import com.example.administrator.myparkingos.model.beans.ModelNode;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 

@@ -2,10 +2,9 @@ package com.example.administrator.myparkingos.model;
 
 import android.annotation.TargetApi;
 import android.os.Build;
-import android.util.ArrayMap;
 
+import com.example.administrator.myparkingos.constant.SelectModel;
 import com.example.administrator.myparkingos.model.beans.Model;
-import com.example.administrator.myparkingos.model.beans.SelectModel;
 import com.example.administrator.myparkingos.util.HttpUtils;
 import com.example.administrator.myparkingos.util.L;
 import com.google.gson.Gson;

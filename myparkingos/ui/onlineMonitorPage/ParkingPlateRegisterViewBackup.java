@@ -24,8 +24,8 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.example.administrator.mydistributedparkingos.R;
-import com.example.administrator.myparkingos.ParkingModel.Model;
 import com.example.administrator.myparkingos.constant.ColumnName;
+import com.example.administrator.myparkingos.model.beans.Model;
 import com.example.administrator.myparkingos.model.beans.gson.EntityParkJHSet;
 import com.example.administrator.myparkingos.myUserControlLibrary.scrollerList.MyAdapter;
 import com.example.administrator.myparkingos.myUserControlLibrary.scrollerList.MyListView;

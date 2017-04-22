@@ -1,20 +1,14 @@
 package com.example.administrator.myparkingos.model;
 
 import android.annotation.TargetApi;
+import android.graphics.Bitmap;
 import android.os.Build;
-import android.util.ArrayMap;
+import android.text.TextUtils;
 
 import com.example.administrator.myparkingos.model.beans.Model;
-import com.example.administrator.myparkingos.model.beans.gson.EntityNetCameraSet;
-import com.example.administrator.myparkingos.model.beans.gson.EntityOperatorDetail;
-import com.example.administrator.myparkingos.model.beans.gson.EntityRights;
-import com.example.administrator.myparkingos.model.beans.gson.EntityRoadWaySet;
-import com.example.administrator.myparkingos.model.beans.gson.EntitySetCarOut;
-import com.example.administrator.myparkingos.model.beans.gson.EntityStationSet;
-import com.example.administrator.myparkingos.model.beans.gson.EntitySysSetting;
-import com.example.administrator.myparkingos.model.beans.gson.EntitySystemTime;
-import com.example.administrator.myparkingos.model.beans.gson.EntityToken;
+import com.example.administrator.myparkingos.model.requestInfo.AddOptLog;
 import com.example.administrator.myparkingos.model.requestInfo.AddOptLogReq;
+import com.example.administrator.myparkingos.model.requestInfo.CaclChargeAmountReq;
 import com.example.administrator.myparkingos.model.requestInfo.CancelChargeReq;
 import com.example.administrator.myparkingos.model.requestInfo.CarPlateNumberLikeReq;
 import com.example.administrator.myparkingos.model.requestInfo.GetCarInReq;
@@ -32,15 +26,20 @@ import com.example.administrator.myparkingos.model.requestInfo.GetRightsByGroupI
 import com.example.administrator.myparkingos.model.requestInfo.GetServerTimeReq;
 import com.example.administrator.myparkingos.model.requestInfo.GetSysSettingObjectReq;
 import com.example.administrator.myparkingos.model.requestInfo.LoginUserReq;
+import com.example.administrator.myparkingos.model.requestInfo.SetCarFreeOutWithoutCPHReq;
 import com.example.administrator.myparkingos.model.requestInfo.SetCarInConfirmReq;
 import com.example.administrator.myparkingos.model.requestInfo.SetCarInReq;
 import com.example.administrator.myparkingos.model.requestInfo.SetCarInWithoutCPHReq;
 import com.example.administrator.myparkingos.model.requestInfo.SetCarOutReq;
+import com.example.administrator.myparkingos.model.requestInfo.SetCarOutWithoutCPHReq;
 import com.example.administrator.myparkingos.model.requestInfo.SetCarOutWithoutEntryRecordReq;
 import com.example.administrator.myparkingos.model.requestInfo.UpdateChargeAmountReq;
+import com.example.administrator.myparkingos.model.requestInfo.UpdateChargeAsFreeReq;
 import com.example.administrator.myparkingos.model.requestInfo.UpdateChargeInfoReq;
 import com.example.administrator.myparkingos.model.requestInfo.UpdateChargeWithCaptureImageReq;
+import com.example.administrator.myparkingos.model.requestInfo.UploadCaptureImageReq;
 import com.example.administrator.myparkingos.model.responseInfo.AddOptLogResp;
+import com.example.administrator.myparkingos.model.responseInfo.CaclChargeAmountResp;
 import com.example.administrator.myparkingos.model.responseInfo.CancelChargeResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetCarInResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetCarOutResp;
@@ -59,23 +58,31 @@ import com.example.administrator.myparkingos.model.responseInfo.GetServerTimeRes
 import com.example.administrator.myparkingos.model.responseInfo.GetStationSetWithoutLoginResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetSysSettingObjectResp;
 import com.example.administrator.myparkingos.model.responseInfo.LoginUserResp;
+import com.example.administrator.myparkingos.model.responseInfo.SetCarFreeOutWithoutCPHResp;
 import com.example.administrator.myparkingos.model.responseInfo.SetCarInConfirmResp;
 import com.example.administrator.myparkingos.model.responseInfo.SetCarInResp;
 import com.example.administrator.myparkingos.model.responseInfo.SetCarInWithoutCPHResp;
 import com.example.administrator.myparkingos.model.responseInfo.SetCarOutResp;
+import com.example.administrator.myparkingos.model.responseInfo.SetCarOutWithoutCPHResp;
 import com.example.administrator.myparkingos.model.responseInfo.SetCarOutWithoutEntryRecordResp;
 import com.example.administrator.myparkingos.model.responseInfo.UpdateChargeAmountResp;
+import com.example.administrator.myparkingos.model.responseInfo.UpdateChargeAsFreeResp;
 import com.example.administrator.myparkingos.model.responseInfo.UpdateChargeInfoResp;
 import com.example.administrator.myparkingos.model.responseInfo.UpdateChargeWithCaptureImageResp;
+import com.example.administrator.myparkingos.model.responseInfo.UploadCaptureImageResp;
+import com.example.administrator.myparkingos.util.FileUploadUtil;
 import com.example.administrator.myparkingos.util.HttpUtils;
 import com.example.administrator.myparkingos.util.L;
 import com.example.administrator.myparkingos.util.RegexUtil;
+import com.example.administrator.myparkingos.util.TimeConvertUtils;
+import com.google.gson.Gson;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.net.URLEncoder;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -92,17 +99,15 @@ public class GetServiceData
     private static final String TAG = "RequestByURL";
     public static String address = "http://" + Model.serverIP + ":" + Model.serverPort + "/";
 
-    private Request req;
 
-    public void setAddressAndPort(String address, String port)
+    public void setAddressAndPort(String serverIP, String port)
     {
-        Model.serverIP = address;
+        Model.serverIP = serverIP;
         Model.serverPort = port;
-    }
 
-    private GetServiceData()
-    {
-        req = new Request();
+        address = "http://" + Model.serverIP + ":" + Model.serverPort + "/";
+        L.i("Model.serverIP:" + Model.serverIP + ",Model.serverPort:" + Model.serverPort);
+        L.i("address:" + address);
     }
 
     static public GetServiceData getInstance()
@@ -124,7 +129,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         CommonJson commonJson = getData("AddOptLog", Integer.class, null, convertString);
         if (commonJson == null)
@@ -145,7 +150,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         CommonJsonList commonJsonList =
                 getDataWithList("GetOperatorsWithoutLogin", GetOperatorsWithoutLoginResp.DataBean.class, null, convertString);
@@ -163,7 +168,7 @@ public class GetServiceData
 
     /**
      * 在没有登录情况下，获取工作站信息
-     * <p>
+     * <p/>
      * 例如：请求：http://192.168.2.158:9000/ParkAPI/GetStationSetWithoutLogin?token=&OrderField=StationId
      *
      * @return
@@ -172,7 +177,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         CommonJsonList commonJsonList =
                 getDataWithList("GetStationSetWithoutLogin", GetStationSetWithoutLoginResp.DataBean.class, null, convertString);
@@ -192,7 +197,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         CommonJson commonJson =
                 getData("LoginUser", LoginUserResp.DataBean.class, null, convertString);
@@ -218,7 +223,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         CommonJson commonJson = getData("GetSysSettingObject", GetSysSettingObjectResp.DataBean.class, null, convertString);
         if (commonJson == null)
@@ -239,7 +244,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         CommonJson commonJson =
                 getData("getServerTime", GetServerTimeResp.DataBean.class, null, convertString);
@@ -263,7 +268,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         CommonJsonList commonJsonList = getDataWithList("GetOperators", GetOperatorsResp.DataBean.class, null, convertString);
         if (commonJsonList == null)
@@ -286,7 +291,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         CommonJsonList commonJsonList = getDataWithList("GetRightsByGroupID", GetRightsByGroupIDResp.DataBean.class, null, convertString);
         if (commonJsonList == null)
@@ -321,7 +326,7 @@ public class GetServiceData
         }
         Map value = getValue(setCarInReq);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         CommonJson setCarIn = getData("SetCarIn", SetCarInResp.DataBean.class, null, convertString);
         if (setCarIn == null)
@@ -345,9 +350,22 @@ public class GetServiceData
      */
     public SetCarInWithoutCPHResp SetCarInWithoutCPH(SetCarInWithoutCPHReq setCarInWithoutCPHReq)
     {
+        String cph = setCarInWithoutCPHReq.getCPH();
+        if (cph != null) // 中文的车牌需要采用utf-8编码的格式
+        {
+            try
+            {
+                setCarInWithoutCPHReq.setCPH(URLEncoder.encode(cph, "UTF-8"));
+            }
+            catch (UnsupportedEncodingException e)
+            {
+                e.printStackTrace();
+            }
+        }
+
         Map value = getValue(setCarInWithoutCPHReq);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         CommonJson commonJson = getData("SetCarInWithoutCPH", SetCarInWithoutCPHResp.DataBean.class, null, convertString);
         if (commonJson == null)
@@ -402,7 +420,7 @@ public class GetServiceData
 
         Map value = getValue(setCarInConfirmReq);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         CommonJson commonJson = getData("SetCarInConfirmed", SetCarInConfirmResp.DataBean.class, null, convertString);
         if (commonJson == null)
@@ -425,7 +443,7 @@ public class GetServiceData
     {
         Map value = getValue(carPlateNumberLikeReq);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         CommonJson commonJson = getData("GetCarInByCarPlateNumberLike", Integer.class, null, convertString);
         if (commonJson == null)
@@ -441,7 +459,7 @@ public class GetServiceData
     {
         Map value = getValue(getCardIssueReq);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         // 解析数据
         CommonJsonList commonJsonList = getDataWithList("GetCardIssue", GetCardIssueResp.DataBean.class, null, convertString);
@@ -465,7 +483,7 @@ public class GetServiceData
 //    {
 //        Map value = getValue(req);
 //
-//        String convertString = mapConvertString(value);
+//        String convertString = mapToString(value);
 //
 //        // 解析数据
 //        CommonJsonList commonJsonList = getDataWithList("SetCarOut", SetCarOutResp.DataBean.class, null, convertString);
@@ -480,7 +498,7 @@ public class GetServiceData
 //
 //        setCarOutResp.setMsg(commonJsonList.getMsg());
 //        setCarOutResp.setRcode(commonJsonList.getRcode());
-//        setCarOutResp.setData(commonJsonList.getData());
+//        setCarOutResp.setGridData(commonJsonList.getData());
 //        return setCarOutResp;
 //    }
 
@@ -491,7 +509,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         // 解析数据
         CommonJsonList commonJsonList = getDataWithList("GetCheDaoSet", GetCheDaoSetResp.DataBean.class, null, convertString);
@@ -519,7 +537,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         // 解析数据
         CommonJsonList commonJsonList = getDataWithList("GetNetCameraSet", GetNetCameraSetResp.DataBean.class, null, convertString);
@@ -541,7 +559,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         // 解析数据
         CommonJsonList commonJsonList = getDataWithList("GetCarOut", GetCarOutResp.DataBean.class, null, convertString);
@@ -563,7 +581,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         // 解析数据
         CommonJsonList commonJsonList = getDataWithList("GetCarIn", GetCarInResp.DataBean.class, null, convertString);
@@ -585,7 +603,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         // 解析数据
         CommonJson commonJson = getData("GetParkingInfo", GetParkingInfoResp.DataBean.class, null, convertString);
@@ -627,7 +645,7 @@ public class GetServiceData
 
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         // 解析数据
         CommonJson commonJson = getData("SetCarOut", SetCarOutResp.DataBean.class, null, convertString);
@@ -647,12 +665,25 @@ public class GetServiceData
 
     public SetCarOutWithoutEntryRecordResp SetCarOutWithoutEntryRecord(SetCarOutWithoutEntryRecordReq req)
     {
+        String cph = req.getCPH();
+        L.i("cph:" + cph);
+        if (cph != null) // 中文的车牌需要采用utf-8编码的格式
+        {
+            try
+            {
+                req.setCPH(URLEncoder.encode(cph, "UTF-8"));
+            }
+            catch (UnsupportedEncodingException e)
+            {
+                e.printStackTrace();
+            }
+        }
+
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
-
+        String convertString = mapToString(value);
         // 解析数据
-        CommonJson commonJson = getData("SetCarOutWithoutEntryRecord", SetCarOutWithoutEntryRecordResp.DataBean.class, null, convertString);
+        CommonJson commonJson = getData("SetCarOutWithoutEntryRecord", SetCarOutResp.DataBean.class, null, convertString);
         if (commonJson == null)
         {
             return null;
@@ -663,7 +694,7 @@ public class GetServiceData
 
         resp.setMsg(commonJson.getMsg());
         resp.setRcode(commonJson.getRcode());
-        resp.setData((SetCarOutWithoutEntryRecordResp.DataBean) commonJson.getData());
+        resp.setData((SetCarOutResp.DataBean) commonJson.getData());
         return resp;
     }
 
@@ -671,16 +702,16 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         // 解析数据
         CommonJson commonJson = getData("UpdateChargeAmount", Integer.class, null, convertString);
-        if (commonJson == null)
+        if (commonJson == null || commonJson.getData() == null)
         {
             return null;
         }
 
-        L.i("commonJsonList data" + commonJson.getData());
+        L.i("commonJsonList data:" + commonJson.getData());
         UpdateChargeAmountResp resp = new UpdateChargeAmountResp();
 
         resp.setMsg(commonJson.getMsg());
@@ -693,7 +724,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         // 解析数据
         CommonJson commonJson = getData("UpdateChargeInfo", Integer.class, null, convertString);
@@ -711,21 +742,21 @@ public class GetServiceData
         return resp;
     }
 
-    public UpdateChargeWithCaptureImageResp UpdateChargeWithCaptureImage(UpdateChargeWithCaptureImageReq req)
+    public UpdateChargeAsFreeResp UpdateChargeAsFree(UpdateChargeAsFreeReq req)
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         // 解析数据
-        CommonJson commonJson = getData("UpdateChargeWithCaptureImage", Integer.class, null, convertString);
+        CommonJson commonJson = getData("UpdateChargeAsFree", Integer.class, null, convertString);
         if (commonJson == null)
         {
             return null;
         }
 
-        L.i("commonJsonList data" + commonJson.getData());
-        UpdateChargeWithCaptureImageResp resp = new UpdateChargeWithCaptureImageResp();
+        L.i("commonJsonList data:" + commonJson.getData());
+        UpdateChargeAsFreeResp resp = new UpdateChargeAsFreeResp();
 
         resp.setMsg(commonJson.getMsg());
         resp.setRcode(commonJson.getRcode());
@@ -738,7 +769,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         // 解析数据
         CommonJson commonJson = getData("CancelCharge", Integer.class, null, convertString);
@@ -760,7 +791,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         convertString += (null == extendParam || extendParam.trim().length() <= 0 ? "" : (extendParam.trim().startsWith("&") ? "" : "&") + extendParam);
         // 解析数据
@@ -783,7 +814,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         convertString += (null == extendParam || extendParam.trim().length() <= 0 ? "" : (extendParam.trim().startsWith("&") ? "" : "&") + extendParam);
         // 解析数据
@@ -807,7 +838,7 @@ public class GetServiceData
     {
         Map value = getValue(req);
 
-        String convertString = mapConvertString(value);
+        String convertString = mapToString(value);
 
         convertString += (null == extendParam || extendParam.trim().length() <= 0 ? "" : (extendParam.trim().startsWith("&") ? "" : "&") + extendParam);
         // 解析数据
@@ -826,92 +857,45 @@ public class GetServiceData
         return resp;
     }
 
-    /**
-     * 将实体类，转换成相应的map集合，但是需要注意的是，有些字段不是必须的；
-     * int 默认时为0，0在字段中可以有意思的存在的;所以这里使用相应的封装类，封装类可以指定null,或者相应的基础类
-     *
-     * @param thisObj
-     * @return
-     */
-    public static Map getValue(Object thisObj)
+    public CaclChargeAmountResp CaclChargeAmount(CaclChargeAmountReq req)
     {
-        Map map = new LinkedHashMap<>();
-        Class c;
-        try
+        String cph = req.getCPH();
+        L.i("cph:" + cph);
+        if (cph != null) // 中文的车牌需要采用utf-8编码的格式
         {
-            c = Class.forName(thisObj.getClass().getName()); // 获取object的class对象
-            Method[] m = c.getMethods();
-            for (int i = 0; i < m.length; i++)
+            try
             {
-                String method = m[i].getName();// 遍历所有的方法，其getName后面即为相应的变量名字
-                if (method.startsWith("get"))
-                {
-                    try
-                    {
-                        Object value = m[i].invoke(thisObj);
-                        if (value != null && !"getClass".equals(method)) //value为空，则不存放
-                        {
-                            String key = method.substring(3); // 3即为get的长度
-//                            key = key.substring(0, 1).toUpperCase() + key.substring(1);// 大小写的变化
-//                            map.put(method.substring(3).toLowerCase(), value);
-                            map.put(key, value);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        System.out.println("error:" + method);
-                    }
-                }
+                req.setCPH(URLEncoder.encode(cph, "UTF-8"));
+            }
+            catch (UnsupportedEncodingException e)
+            {
+                e.printStackTrace();
             }
         }
-        catch (Exception e)
-        {
-            // TODO: handle exception
-        }
-        return map;
-    }
 
-    /**
-     * 将map集合的字符对转换成字符串
-     *
-     * @param srcMap
-     * @return
-     */
-    @TargetApi(Build.VERSION_CODES.KITKAT)
-    public String mapConvertString(Map<String, Object> srcMap)
-    {
-        StringBuffer stringBuffer = new StringBuffer();
-        if (srcMap == null || srcMap.size() <= 0)
+        Map value = getValue(req);
+
+        String convertString = mapToString(value);
+
+        // 解析数据
+        CommonJson commonJson = getData("CaclChargeAmount", CaclChargeAmountResp.DataBean.class, null, convertString);
+        if (commonJson == null)
         {
             return null;
         }
 
-        Set<String> strings = srcMap.keySet();
+        L.i("commonJsonList data" + commonJson.getData());
+        CaclChargeAmountResp resp = new CaclChargeAmountResp();
 
-        int i = 0;
-        for (String str : strings)
-        {
-            Object o = srcMap.get(str);
-            String eachString;
-            if (!(o instanceof String)) // 不是String,转换成String
-            {
-                eachString = String.valueOf(o);
-            }
-            else
-            {
-                eachString = (String) o;
-            }
-            stringBuffer.append(str).append("=").append(eachString);
-            if (i != strings.size() - 1)
-            {
-                stringBuffer.append("&");
-            }
-            i++;
-        }
-
-//        L.i("stringBuffer.toString():" + stringBuffer.toString());
-        return stringBuffer.toString();//
+        resp.setMsg(commonJson.getMsg());
+        resp.setRcode(commonJson.getRcode());
+        resp.setData((CaclChargeAmountResp.DataBean) commonJson.getData());
+        return resp;
     }
+
+
+
+
 
     /**
      * 获取数据
@@ -1007,6 +991,8 @@ public class GetServiceData
                 , (null == URLParam || "" == URLParam.trim() ? "" : "?")
                 , URLParam);
 
+//        OkGoUtil.INSTATNCE.requestBitmapGet(mActivity, ); /// 直接进行替换
+
         try
         {
             data = HttpUtils.doGet(expectURL);
@@ -1023,5 +1009,296 @@ public class GetServiceData
         return result;
     }
 
+
+    /**
+     * 发送日记请求 较多的地方会用到
+     */
+    public void requestAddOptLog(String menu, String content)
+    {
+        AddOptLogReq req = new AddOptLogReq();
+        req.setToken(Model.token);
+        req.setJsonModel(getAddOptLogText(menu, content));
+        GetServiceData.getInstance().AddOptLog(req);
+    }
+
+    private String getAddOptLogText(String menu, String content)
+    {
+        AddOptLog opt = new AddOptLog();
+        opt.setOptNO(Model.sUserCard);
+        opt.setUserName(Model.sUserName);
+        opt.setOptMenu(menu);
+        opt.setOptContent(content);
+        opt.setOptTime(TimeConvertUtils.longToString(System.currentTimeMillis()));
+        opt.setStationID(Model.stationID);
+
+        Gson gson = new Gson();
+        try
+        {
+            return URLEncoder.encode(gson.toJson(opt), "UTF-8");
+        }
+        catch (UnsupportedEncodingException e)
+        {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * 上传文件
+     *
+     * @param req
+     * @param fileName
+     * @return
+     */
+    public UploadCaptureImageResp UploadCaptureImage(UploadCaptureImageReq req, String fileName)
+    {
+        if (TextUtils.isEmpty(fileName))
+        {
+            L.i("TextUtils.isEmpty(fileName)");
+            return null;
+        }
+        Map value = getValue(req);
+
+        String convertString = mapToString(value);
+
+        File file = new File(fileName);
+
+        String resultString;
+        try
+        {
+            resultString = FileUploadUtil.uploadForm(null, "uploadFile", file, file.getName(), generateResultUrl("UploadCaptureImage", convertString));
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            return null;
+        }
+
+        if (resultString == null) return null;
+
+        CommonJsonList commonJsonList = CommonJsonList.fromJson(resultString, String.class); // 返回值的类型是String
+        if (commonJsonList == null)
+        {
+            return null;
+        }
+
+        L.i("commonJson data" + commonJsonList.getData());
+        UploadCaptureImageResp resp = new UploadCaptureImageResp();
+
+        resp.setMsg(commonJsonList.getMsg());
+        resp.setRcode(commonJsonList.getRcode());
+        resp.setData(commonJsonList.getData());
+        return resp;
+    }
+
+    public UpdateChargeWithCaptureImageResp UpdateChargeWithCaptureImage(UpdateChargeWithCaptureImageReq req, Bitmap bitmap)
+    {
+        if (bitmap == null) return null;
+        Map value = getValue(req);
+
+        String convertString = mapToString(value);
+        String resultString;
+        try
+        {
+            resultString = FileUploadUtil.uploadBitmap(null, bitmap, generateResultUrl("UpdateChargeWithCaptureImage", convertString));
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            return null;
+        }
+
+        CommonJson commonJson = CommonJson.fromJson(resultString, Integer.class); // 返回值的类型是String
+        if (commonJson == null)
+        {
+            return null;
+        }
+
+        L.i("commonJson data:" + commonJson.getData());
+        UpdateChargeWithCaptureImageResp resp = new UpdateChargeWithCaptureImageResp();
+
+        resp.setMsg(commonJson.getMsg());
+        resp.setRcode(commonJson.getRcode());
+        if (commonJson.getData() != null)
+            resp.setData((Integer) commonJson.getData());
+        return resp;
+    }
+
+    public SetCarOutWithoutCPHResp SetCarOutWithoutCPH(SetCarOutWithoutCPHReq req)
+    {
+        Map value = getValue(req);
+
+        String convertString = mapToString(value);
+
+        CommonJson commonJson =
+                getData("SetCarOutWithoutCPH", SetCarOutWithoutCPHResp.DataBean.class, null, convertString);
+        if (commonJson == null)
+        {
+            return null;
+        }
+        SetCarOutWithoutCPHResp resp = new SetCarOutWithoutCPHResp();
+        resp.setRcode(commonJson.getRcode());
+        resp.setMsg(commonJson.getMsg());
+        resp.setData((SetCarOutWithoutCPHResp.DataBean) commonJson.getData());
+        L.i("SetCarOutWithoutCPH" + resp.toString());
+        return resp;
+    }
+
+    public SetCarFreeOutWithoutCPHResp SetCarFreeOutWithoutCPH(SetCarFreeOutWithoutCPHReq req)
+    {
+        Map value = getValue(req);
+
+        String convertString = mapToString(value);
+
+        CommonJson commonJson =
+                getData("SetCarFreeOutWithoutCPH", SetCarFreeOutWithoutCPHResp.DataBean.class, null, convertString);
+        if (commonJson == null)
+        {
+            return null;
+        }
+        SetCarFreeOutWithoutCPHResp resp = new SetCarFreeOutWithoutCPHResp();
+        resp.setRcode(commonJson.getRcode());
+        resp.setMsg(commonJson.getMsg());
+        resp.setData((SetCarFreeOutWithoutCPHResp.DataBean) commonJson.getData());
+        L.i("SetCarFreeOutWithoutCPH" + resp.toString());
+        return resp;
+    }
+
+
+    /**
+     * 将实体类，转换成相应的map集合，但是需要注意的是，有些字段不是必须的；
+     * int 默认时为0，0在字段中可以有意思的存在的;所以这里使用相应的封装类，封装类可以指定null,或者相应的基础类
+     *
+     * @param thisObj
+     * @return
+     */
+    public static Map getValue(Object thisObj)
+    {
+        Map map = new LinkedHashMap<>();
+        Class c;
+        try
+        {
+            c = Class.forName(thisObj.getClass().getName()); // 获取object的class对象
+            Method[] m = c.getMethods();
+            for (int i = 0; i < m.length; i++)
+            {
+                String method = m[i].getName();// 遍历所有的方法，其getName后面即为相应的变量名字
+                if (method.startsWith("get"))
+                {
+                    try
+                    {
+                        Object value = m[i].invoke(thisObj);
+                        if (value != null && !"getClass".equals(method)) //value为空，则不存放
+                        {
+                            String key = method.substring(3); // 3即为get的长度
+//                            key = key.substring(0, 1).toUpperCase() + key.substring(1);// 大小写的变化
+//                            map.put(method.substring(3).toLowerCase(), value);
+                            map.put(key, value);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        System.out.println("error:" + method);
+                    }
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            // TODO: handle exception
+        }
+        return map;
+    }
+
+    public static String getUTF8ForChinese(String srcString, String encodeFormat)
+    {
+        StringBuffer stringBuffer = new StringBuffer();
+        for (int i = 0; i < srcString.length(); i++)
+        {
+            String valueOf = String.valueOf(srcString.charAt(i));
+            if (RegexUtil.checkChinese(valueOf))
+            {
+                L.e("getUTF8ForChinese " + valueOf + "->是中文");
+                String encode = "";
+                try
+                {
+                    encode = URLEncoder.encode(valueOf, encodeFormat);
+                }
+                catch (UnsupportedEncodingException e)
+                {
+                    e.printStackTrace();
+                }
+                stringBuffer.append(encode);
+            }
+            else
+            {
+                stringBuffer.append(valueOf);
+            }
+        }
+        return stringBuffer.toString();
+    }
+
+    /**
+     * 将map集合的字符对转换成字符串
+     *
+     * @param srcMap
+     * @return
+     */
+    @TargetApi(Build.VERSION_CODES.KITKAT)
+    public static String mapToString(Map<String, Object> srcMap)
+    {
+        StringBuffer stringBuffer = new StringBuffer();
+        if (srcMap == null || srcMap.size() <= 0)
+        {
+            return null;
+        }
+
+        Set<String> strings = srcMap.keySet();
+
+        int i = 0;
+        for (String str : strings)
+        {
+            Object o = srcMap.get(str);
+            String eachString;
+            if (!(o instanceof String)) // 不是String,转换成String
+            {
+                eachString = String.valueOf(o);
+            }
+            else
+            {
+                eachString = getUTF8ForChinese((String) o, "UTF-8");
+            }
+            stringBuffer.append(str).append("=").append(eachString);
+            if (i != strings.size() - 1)
+            {
+                stringBuffer.append("&");
+            }
+            i++;
+        }
+
+//        L.i("stringBuffer.toString():" + stringBuffer.toString());
+        return stringBuffer.toString();
+    }
+
+    public static String getResultUrl(String interfaceName, Object thisObj)
+    {
+        return generateResultUrl(interfaceName, mapToString(getValue(thisObj)));
+    }
+
+    public static String generateResultUrl(String interfaceName, String param)
+    {
+        if (null == interfaceName || interfaceName.trim().length() <= 0)
+        {
+            return null;
+        }
+
+        /**
+         * 组合需要最后的 URL地址
+         */
+        return String.format("%1$sParkAPI/%2$s%3$s"
+                , address
+                , interfaceName
+                , null == param || "" == param.trim() ? "" : "?" + param);
+    }
 
 }

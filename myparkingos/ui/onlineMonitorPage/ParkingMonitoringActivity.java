@@ -11,6 +11,7 @@ import android.support.v4.util.ArrayMap;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.view.View;
 
 import com.example.administrator.mydistributedparkingos.R;
 import com.example.administrator.myparkingos.constant.CR;
@@ -20,13 +21,13 @@ import com.example.administrator.myparkingos.constant.JsonSearchParam;
 import com.example.administrator.myparkingos.constant.OpenWayEnum;
 import com.example.administrator.myparkingos.constant.OrderField;
 import com.example.administrator.myparkingos.constant.PlateColorEnum;
-import com.example.administrator.myparkingos.constant.RCode;
+import com.example.administrator.myparkingos.constant.RCodeEnum;
 import com.example.administrator.myparkingos.model.GetServiceData;
-import com.example.administrator.myparkingos.model.ModelNode;
 import com.example.administrator.myparkingos.model.MonitorRemoteRequest;
 import com.example.administrator.myparkingos.model.RequestByURL;
 import com.example.administrator.myparkingos.model.beans.BlackListOpt;
 import com.example.administrator.myparkingos.model.beans.Model;
+import com.example.administrator.myparkingos.model.beans.ModelNode;
 import com.example.administrator.myparkingos.model.beans.gson.EntityBlackList;
 import com.example.administrator.myparkingos.model.beans.gson.EntityCarTypeInfo;
 import com.example.administrator.myparkingos.model.beans.gson.EntityCardIssue;
@@ -34,8 +35,6 @@ import com.example.administrator.myparkingos.model.beans.gson.EntityMoney;
 import com.example.administrator.myparkingos.model.beans.gson.EntityParkJHSet;
 import com.example.administrator.myparkingos.model.beans.gson.EntityPersonnelInfo;
 import com.example.administrator.myparkingos.model.beans.gson.EntityUserInfo;
-import com.example.administrator.myparkingos.model.requestInfo.AddOptLog;
-import com.example.administrator.myparkingos.model.requestInfo.AddOptLogReq;
 import com.example.administrator.myparkingos.model.requestInfo.CancelChargeReq;
 import com.example.administrator.myparkingos.model.requestInfo.GetCarInReq;
 import com.example.administrator.myparkingos.model.requestInfo.GetCarOutReq;
@@ -51,7 +50,7 @@ import com.example.administrator.myparkingos.model.requestInfo.SetCarOutReq;
 import com.example.administrator.myparkingos.model.requestInfo.SetCarOutWithoutEntryRecordReq;
 import com.example.administrator.myparkingos.model.requestInfo.UpdateChargeAmountReq;
 import com.example.administrator.myparkingos.model.requestInfo.UpdateChargeInfoReq;
-import com.example.administrator.myparkingos.model.requestInfo.UpdateChargeWithCaptureImageReq;
+import com.example.administrator.myparkingos.model.requestInfo.UploadCaptureImageReq;
 import com.example.administrator.myparkingos.model.responseInfo.CancelChargeResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetCarInResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetCarOutResp;
@@ -68,32 +67,39 @@ import com.example.administrator.myparkingos.model.responseInfo.SetCarOutResp;
 import com.example.administrator.myparkingos.model.responseInfo.SetCarOutWithoutEntryRecordResp;
 import com.example.administrator.myparkingos.model.responseInfo.UpdateChargeAmountResp;
 import com.example.administrator.myparkingos.model.responseInfo.UpdateChargeInfoResp;
-import com.example.administrator.myparkingos.model.responseInfo.UpdateChargeWithCaptureImageResp;
+import com.example.administrator.myparkingos.model.responseInfo.UploadCaptureImageResp2;
+import com.example.administrator.myparkingos.myUserControlLibrary.MessageBox;
 import com.example.administrator.myparkingos.ui.FragmentChargeManager;
 import com.example.administrator.myparkingos.ui.FragmentDetailManager;
+import com.example.administrator.myparkingos.ui.Summary;
 import com.example.administrator.myparkingos.ui.onlineMonitorPage.report.ReportDealLineView;
 import com.example.administrator.myparkingos.util.BitmapUtils;
 import com.example.administrator.myparkingos.util.ConcurrentQueueHelper;
 import com.example.administrator.myparkingos.util.ExeUtil;
+import com.example.administrator.myparkingos.util.ImageUitls;
 import com.example.administrator.myparkingos.util.L;
 import com.example.administrator.myparkingos.util.SDCardUtils;
 import com.example.administrator.myparkingos.util.T;
 import com.example.administrator.myparkingos.util.TimeConvertUtils;
-import com.google.gson.Gson;
+import com.example.administrator.myparkingos.volleyUtil.callback.GsonCallback;
+import com.jude.http.RequestManager;
+import com.jude.http.RequestMap;
 import com.vz.tcpsdk;
 
 import java.io.File;
-import java.net.URLEncoder;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Created by Administrator on 2017-02-16.
  * 【在线监控】主界面
  */
-public class ParkingMonitoringActivity extends AppCompatActivity
+public class ParkingMonitoringActivity extends AppCompatActivity implements GsonCallback.Listener
 {
     private FragmentChargeManager fragmentChargeManager = null;
     private FragmentDetailManager fragmentDetailManager = null;
@@ -115,6 +121,16 @@ public class ParkingMonitoringActivity extends AppCompatActivity
     private GetParkingInfoResp getParkingInfoResp;
     private ParkingChannelSelectView parkingChannelSelectView;
 
+    public static final String METHOD_GETCARDTYPEDEF = "GetCardTypeDef";
+    public static final String METHOD_GETCHEDAOSET = "GetCheDaoSet";
+    public static final String METHOD_GETNETCAMERASET = "GetNetCameraSet";
+    public static final String METHOD_GETCARIN = "GetCarIn";
+    public static final String METHOD_GETCAROUT = "GetCarOut";
+    public static final String METHOD_GETPARKINGINFO = "GetParkingInfo";
+    public static final String METHOD_UPLOADCAPTUREIMAGE = "UploadCaptureImage";
+    public static final String METHOD_SETCARINWITHOUTCPH = "SetCarInWithoutCPH";
+
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState)
     {
@@ -122,28 +138,28 @@ public class ParkingMonitoringActivity extends AppCompatActivity
         parkingMonitoringView = new ParkingMonitoringView(this, R.layout.activity_parkingmonitor, mHandler)
         {
             @Override
-            public void chargeInfoToFragmentChange()
+            public void chargeInfoToFragmentChange() //点击收费信息，切换Fragment
             {
                 fragmentChargeManager.showFragment(0);
                 mHandler.sendEmptyMessage(MSG_ChargeInfo);
             }
 
             @Override
-            public void carSpaceInfoToFragmentChange()
+            public void carSpaceInfoToFragmentChange()// 点击车位信息，切换fragment
             {
                 fragmentChargeManager.showFragment(1);
                 mHandler.sendEmptyMessage(MSG_ParkingInfo);
             }
 
             @Override
-            public void carInParkingDetailToFragmentChange()
+            public void carInParkingDetailToFragmentChange()//点击场内车辆明细
             {
                 fragmentDetailManager.showFragment(0);
                 mHandler.sendEmptyMessage(MSG_GetCarIn);
             }
 
             @Override
-            public void chargeDetailToFragmentChange()
+            public void chargeDetailToFragmentChange()//点击车辆收费明细
             {
                 fragmentDetailManager.showFragment(1);
                 mHandler.sendEmptyMessage(MSG_GetCarOut);
@@ -165,7 +181,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity
                             @Override
                             public void onSelectInOutName(String currentText)
                             {
-                                if (checkCheDaoSetRespDataInvalid()) return; // 获取具体选中 13
+                                if (checkCheDaoSetRespDataInvalid()) return;
 
                                 int channelIndex = getCtrlIndexByInoutName(currentText);
                                 if (channelIndex < 0)
@@ -245,7 +261,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity
                                     public void run()
                                     {
                                         ArrayList<String> strings = new ArrayList<>();
-                                        if (respList.getData() != null && respList.getData().size() > 0)
+                                        if (respList != null && respList.getData() != null && respList.getData().size() > 0)
                                         {
                                             for (GetCardIssueResp.DataBean o : respList.getData())
                                             {
@@ -424,26 +440,8 @@ public class ParkingMonitoringActivity extends AppCompatActivity
             {
                 if (parkingInNoPlateView == null)
                 {
-                    parkingInNoPlateView = new ParkingInNoPlateView(ParkingMonitoringActivity.this)
+                    parkingInNoPlateView = new ParkingInNoPlateView(ParkingMonitoringActivity.this, index, ctrlNumber)
                     {
-                        @Override
-                        protected void onBtnOk(final SetCarInWithoutCPHReq carInWithoutCPHReq, final String roadName)
-                        {
-                            carInWithoutCPHReq.setToken(Model.token);
-                            carInWithoutCPHReq.setStationId(Model.stationID);
-                            carInWithoutCPHReq.setCtrlNumber(ctrlNumber);
-
-                            String CPH = carInWithoutCPHReq.getCPH();
-                            sendModeToQueue(ModelNode.E_CarInOutType.CAR_IN_TYPE_auto_noPlate, CPH, carInWithoutCPHReq, index);
-                            parkingInNoPlateView.dismiss();
-                        }
-
-                        @Override
-                        protected void onBtnCancel()
-                        {
-                            parkingInNoPlateView.dismiss();
-                        }
-
                         @Override
                         public void prepareLoadData()
                         {
@@ -456,9 +454,18 @@ public class ParkingMonitoringActivity extends AppCompatActivity
                             L.i("获取到的fileName:" + fileName);
                             parkingMonitoringView.saveImage(fileName, index);
                             parkingInNoPlateView.setImage(fileName); //显示图像
-                            parkingInNoPlateView.cleanCarNo();
+
                         }
                     };
+
+                    parkingInNoPlateView.setListener(new ParkingInNoPlateView.NoPlateListener()
+                    {
+                        @Override
+                        public void saveImageCallBack(String fileName, int index)
+                        {
+                            parkingMonitoringView.saveImage(fileName, index);
+                        }
+                    });
                 }
                 parkingInNoPlateView.show();
             }
@@ -471,8 +478,17 @@ public class ParkingMonitoringActivity extends AppCompatActivity
             {
                 if (parkingOutNOPlateNoView == null)
                 {
-                    parkingOutNOPlateNoView = new ParkingOutNOPlateNoView(ParkingMonitoringActivity.this);
+                    parkingOutNOPlateNoView = new ParkingOutNOPlateNoView(ParkingMonitoringActivity.this, mHandler, null, getChannelIndex(CAR_CHANNEL_OUT));
                 }
+                parkingOutNOPlateNoView.setListener(new ParkingOutNOPlateNoView.CPHRefreshListener()
+                {
+                    @Override
+                    public void InNoCPHRefresh(int laneIndex, String localPath, String networkPath)
+                    {
+                        GetBinInOut();
+                        //更新界面的数据
+                    }
+                });
                 parkingOutNOPlateNoView.show();
             }
 
@@ -495,7 +511,8 @@ public class ParkingMonitoringActivity extends AppCompatActivity
             @Override
             public void onClickRefreshDetail()
             {
-                requestParkingDetailFromNet();
+                requestGetCarIn();
+                requestGetCarOut();
             }
 
             /**
@@ -511,7 +528,6 @@ public class ParkingMonitoringActivity extends AppCompatActivity
                         @Override
                         public void prepareLoadData() //提前加载数据
                         {
-
                             new Thread(new Runnable()
                             {
                                 @Override
@@ -706,12 +722,33 @@ public class ParkingMonitoringActivity extends AppCompatActivity
                 parkingChangeShifts.show();
             }
 
+            public void testUploadPicture() // 可以直接上传到服务器上
+            {
+                UploadCaptureImageReq req = new UploadCaptureImageReq(); // 为图片下载提供支持
+                req.setToken(Model.token);
+                req.setStationId(String.valueOf(Model.stationID));
+                req.setDate(TimeConvertUtils.longToString("yyyyMMdd", System.currentTimeMillis()));
+                String resultUrl = GetServiceData.getResultUrl(METHOD_UPLOADCAPTUREIMAGE, req);
+
+                // 直接上传文件
+                Bitmap bitmap = BitmapFactory.decodeFile(SDCardUtils.getSDCardPath() + "picture.jpg");
+                InputStream inputStream = ImageUitls.bitmapToInputStream(bitmap, false);
+
+                RequestMap params = new RequestMap();
+//                params.put("file", new File(SDCardUtils.getSDCardPath() + "picture.jpg"));
+                params.put("bitmap", inputStream, "mypicture.jpg");
+                RequestManager
+                        .getInstance()
+                        .post(resultUrl, params, new GsonCallback<>(UploadCaptureImageResp2.class, ParkingMonitoringActivity.this, resultUrl));
+            }
+
             /**
              * 点击弹出收费车辆按钮
              */
             @Override
             public void onClickChargeRecordBtn()
             {
+                testUploadPicture();
             }
 
             /**
@@ -720,13 +757,15 @@ public class ParkingMonitoringActivity extends AppCompatActivity
             @Override
             public void onClickGroundVehicleBtn()
             {
-                ConcurrentQueueHelper.getInstance().put(new ModelNode(1, "hello", "strFile", "strFileJpg", "strCPH"));
+
             }
         };
 
         tcpsdk.getInstance().setup();
         Model.sImageSavePath = SDCardUtils.getDiskCacheDirPath(this, ""); // "D:\\CaptureImage\\1\\20170410\\612f52e2-eb20-4224-9aeb-3bfed799e35d20170410191108cgo.jpg
-        filesJpg = SDCardUtils.getDiskCacheDirPath(this, "bitmap"); //表示当前图片所有的路径
+
+        filesJpg = SDCardUtils.getDiskCacheDirPath(this, "CaptureImage"); // filesJpg:/mnt/internal_sd/Android/data/com.example.administrator.mydistributedparkingos/cacheCaptureImage
+        L.e("filesJpg:" + filesJpg);
         initView(savedInstanceState);
 
         initFields();
@@ -734,7 +773,6 @@ public class ParkingMonitoringActivity extends AppCompatActivity
 
         startAliveTime = System.currentTimeMillis();
         mHandler.sendEmptyMessage(MSG_KeppAlive);
-
 
         exe = new ExeUtil();
         queueTask = new QueueTask(true);
@@ -871,9 +909,9 @@ public class ParkingMonitoringActivity extends AppCompatActivity
      */
     private boolean dealSetCarInResponse(final SetCarInResp setCarInResp, final String srcCPH, final int index, final PlateColorEnum colorType)
     {
-        RCode rCode = RCode.valueOf(Integer.parseInt(setCarInResp.getRcode()));
+        RCodeEnum rCodeEnum = RCodeEnum.valueOf(Integer.parseInt(setCarInResp.getRcode()));
         final SetCarInResp.DataBean data = setCarInResp.getData();
-        switch (rCode)
+        switch (rCodeEnum)
         {
             case BlackList:
             {
@@ -1087,7 +1125,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity
                     }
                 });
 
-                requestAddOptLog("在线监控:FillOutData", "临时车禁止驶入小车场" + data.getCardNO());
+                GetServiceData.getInstance().requestAddOptLog("在线监控:FillOutData", "临时车禁止驶入小车场" + data.getCardNO());
                 /**
                  * 发送语音
                  */
@@ -1250,7 +1288,15 @@ public class ParkingMonitoringActivity extends AppCompatActivity
             // 显示picture 进出口图片
 
             // 更新收费数据
-            updateSetCarIn(data);
+            mHandler.post(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    updateSetCarIn(data);
+                }
+            });
+
         }
         return true;
     }
@@ -1352,21 +1398,6 @@ public class ParkingMonitoringActivity extends AppCompatActivity
         });
     }
 
-
-    private String getAddOptLogText(String menu, String content)
-    {
-        AddOptLog opt = new AddOptLog();
-        opt.setOptNO(Model.sUserCard);
-        opt.setUserName(Model.sUserName);
-        opt.setOptMenu(menu);
-        opt.setOptContent(content);
-        opt.setOptTime(TimeConvertUtils.longToString(System.currentTimeMillis()));
-        opt.setStationID(Model.stationID);
-
-        Gson gson = new Gson();
-        return URLEncoder.encode(gson.toJson(opt));
-    }
-
     private void updateCarChargeToFragment(int what, Object obj)
     {
         Message message = mHandler.obtainMessage();
@@ -1384,7 +1415,6 @@ public class ParkingMonitoringActivity extends AppCompatActivity
         message.obj = msg;
         mHandler.sendMessage(message);
     }
-
 
     /**
      * 通过网络上获取相应的权限来获取当前按钮的使能情况;
@@ -1421,7 +1451,6 @@ public class ParkingMonitoringActivity extends AppCompatActivity
 
         parkingPlateRegisterView.setBtnEnable(booleen);
     }
-
 
     private String[] dealCarType()
     {
@@ -1564,25 +1593,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity
 
     private void initFields()
     {
-        /**
-         * 1，获取车辆类型 即固定车和储值车，临时车
-         */
-
-        GetCardTypeDefReq cardTypeDefReq = new GetCardTypeDefReq();
-        cardTypeDefReq.setToken(Model.token);
-        final GetCardTypeDefResp resp = GetServiceData.getInstance().GetCardTypeDef(cardTypeDefReq, null);
-        if (resp != null && resp.getData() != null)
-        {
-            new Thread(new Runnable()
-            {
-                @Override
-                public void run()
-                {
-                    CR.BinDic(resp.getData());
-                }
-            }).start();
-        }
-
+        requestGetCardTypeDef();// 获取车辆类型 即固定车和储值车，临时车
 
         // 判断是否换班
         if (CR.GetAppConfig(getApplicationContext(), ConstantSharedPrefs.UserCode, "").equals(Model.sUserCard))
@@ -1596,46 +1607,30 @@ public class ParkingMonitoringActivity extends AppCompatActivity
             Model.dLoginTime = System.currentTimeMillis();
         }
         Model.iLoadTimeType = 0;
-        /**
-         * 2，获取车道信息，来播放视频数据
-         */
-        new Thread(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                if (!requestGetCheDaoSet()) // 获取车道信息
-                {
-                    return;
-                }
-/**
- * 4_06 视频显示的画面的逻辑：必定是先显示入场，然后显示出场；
- *                         入场的图片是在视频播放下面;
- *      存在的情况：
- *          前提：最多只有4路显示视频；且不是副摄像头拍摄；
- *          情况的处理情况如下：
- *              1，如果入场和出场的总数大于4，即只取前面四路；
- *              2，如果总通道是1，或入场或出场 且左上角和左下角分别显示视频和图片； 右侧的画面显示数据不存在；
- *              3，如果总通道是2，且一进一出，那么显示入场再显示出场；
- *              4，             且两个入场或出场，则分开显示，且下面显示图片；
- *              5，如果总通数是3，那么全部显示视频，不显示图片；且同样是先入场后出场的顺序
- *              6，如果总通道是4，那么也是先入口，后出口的方式显示；
- *         怎么逻辑封装
- *              1,影响因子，总通道数，通道数 > 2,则不显示图片；
- *              2,优先显示入场视频；
- */
-                L.i("getCheDaoSetResp:" + getCheDaoSetResp.getData().size());
-                playVideoIn2Video();
-//                if (getCheDaoSetResp.getData().size() <= 2)
-//                {
-//                    playVideoIn2Video();
-//                }
-//                else if (getCheDaoSetResp.getData().size() > 2)
-//                {
-//                    playVideoInGreaterThan2Video();
-//                }
-            }
-        }).start();
+        requestGetCheDaoSet(); // 获取车道信息，来播放视频数据
+    }
+
+    private void requestGetCheDaoSet()
+    {
+        GetCheDaoSetReq req = new GetCheDaoSetReq();
+        req.setToken(Model.token);
+        req.setJsonSearchParam(JsonSearchParam.getWhenGetCheDaoSet(String.valueOf(Model.stationID)));
+        req.setOrderField(OrderField.getWhenGetCheDaoSet("desc", "asc", "asc"));
+        String resultUrl = GetServiceData.getInstance().getResultUrl(METHOD_GETCHEDAOSET, req);
+        RequestManager
+                .getInstance()
+                .get(resultUrl, new GsonCallback<>(GetCheDaoSetResp.class, this, resultUrl));
+    }
+
+    private void requestGetCardTypeDef()
+    {
+        GetCardTypeDefReq cardTypeDefReq = new GetCardTypeDefReq();
+        cardTypeDefReq.setToken(Model.token);
+
+        String resultUrl = GetServiceData.getInstance().getResultUrl(METHOD_GETCARDTYPEDEF, cardTypeDefReq);
+        RequestManager
+                .getInstance()
+                .get(resultUrl, new GsonCallback<>(GetCardTypeDefResp.class, this, resultUrl));
     }
 
     /**
@@ -1662,34 +1657,22 @@ public class ParkingMonitoringActivity extends AppCompatActivity
             final GetCheDaoSetResp.DataBean dataBean = data.get(CheDaoIndex[i]);
             final int tempI = i;
             final int totalSize = getDataSize;
-            mHandler.post(new Runnable()
-            {
-                @Override
-                public void run()
-                {
-                    parkingMonitoringView.setChannelText(tempI, dataBean.getInOutName());
-                }
-            });
-            if (requestGetNetCameraSet(dataBean.getCameraIP()))
-            {
-                if (netCameraList.get(i) != null
-                        && netCameraList.get(i).getData() != null
-                        && netCameraList.get(i).getData().size() > 0)
-                {
-                    List<GetNetCameraSetResp.DataBean> data1 = netCameraList.get(i).getData();
-                    String videoType = data1.get(0).getVideoType();
-                    switch (videoType)
-                    {
-                        case "ZNYKTY5":
-                        {
-                            L.i("videoType:" + videoType + "i:" + i);
-                            parkingMonitoringView.playVideoByIndex(i, data1.get(0).getVideoIP(), mHandler);
-                            break;
-                        }
-                    }
-                }
-            }
+            parkingMonitoringView.setChannelText(tempI, dataBean.getInOutName());
+
+            requestGetNetCameraSet(i, dataBean);
         }
+    }
+
+    private void requestGetNetCameraSet(int i, GetCheDaoSetResp.DataBean dataBean)
+    {
+        GetNetCameraSetReq req = new GetNetCameraSetReq();
+        req.setToken(Model.token);
+        req.setJsonSearchParam(JsonSearchParam.getWhenGetCameraSet(dataBean.getCameraIP()));
+
+        String resultUrl = GetServiceData.getInstance().getResultUrl(METHOD_GETNETCAMERASET, req);
+        RequestManager
+                .getInstance()
+                .get(resultUrl, new GsonCallback<>(GetNetCameraSetResp.class, this, String.valueOf(i)));
     }
 
     /**
@@ -1713,108 +1696,38 @@ public class ParkingMonitoringActivity extends AppCompatActivity
 
         for (int i = 0; i < getDataSize; i++)
         {
-            final GetCheDaoSetResp.DataBean dataBean = data.get(CheDaoIndex[i]);
-            final int tempI = i;
-            final int totalSize = getDataSize;
-            mHandler.post(new Runnable()
+            GetCheDaoSetResp.DataBean dataBean = data.get(CheDaoIndex[i]);
+            int tempI = i;
+            int totalSize = getDataSize;
+            parkingMonitoringView.setChannelText(tempI, dataBean.getInOutName());
+            if (dataBean.getInOut() == CAR_CHANNEL_IN)
             {
-                @Override
-                public void run()
-                {
-                    parkingMonitoringView.setChannelText(tempI, dataBean.getInOutName());
-                    if (dataBean.getInOut() == 0)
-                    {
-                        parkingMonitoringView.setChannelText(tempI + 2, "入口图片显示");
-                    }
-                    else if (dataBean.getInOut() == 1)
-                    {
-                        parkingMonitoringView.setChannelText(tempI + 2, "出口图片显示");
-                    }
-                }
-            });
-
-            if (requestGetNetCameraSet(dataBean.getCameraIP()))
-            {
-                if (netCameraList.get(i) != null
-                        && netCameraList.get(i).getData() != null
-                        && netCameraList.get(i).getData().size() > 0)
-                {
-                    List<GetNetCameraSetResp.DataBean> data1 = netCameraList.get(i).getData();
-                    String videoType = data1.get(0).getVideoType();
-                    switch (videoType)
-                    {
-                        case "ZNYKTY5":
-                        {
-                            L.i("videoType:" + videoType + "i:" + i);
-                            parkingMonitoringView.playVideoByIndex(i, data1.get(0).getVideoIP(), mHandler);
-                            break;
-                        }
-                    }
-                }
+                parkingMonitoringView.setChannelText(tempI + 2, "入口图片显示");
             }
+            else if (dataBean.getInOut() == CAR_CHANNEL_OUT)
+            {
+                parkingMonitoringView.setChannelText(tempI + 2, "出口图片显示");
+            }
+
+            requestGetNetCameraSet(i, dataBean);
         }
     }
 
     private void initControl()
     {
-        /**
-         * 1,从服务器端加载收费标准，然后设置控制板
-         */
         // 这里的设置，可以更加有意思,即用来控制界面的显示;
 
-        /**
-         * 2，显示状态栏
-         */
+        // 显示状态栏
         parkingMonitoringView.showStatusBar(Model.sUserName, Model.sUserCard,
                 TimeConvertUtils.longToString(Model.dLoginTime), TimeConvertUtils.longToString(System.currentTimeMillis()));
 
-        /**
-         * 3，获取进场和出场信息对应着 场内车辆明细和车辆收费明细
-         */
-        requestParkingDetailFromNet();
+//        获取进场和出场信息对应着 场内车辆明细和车辆收费明细
+        requestGetCarIn();
+        requestGetCarOut();
 
-        /**
-         * 4, 统计获取车位信息，显示到界面即可
-         */
-        new Thread(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                requestGetParkingInfo();
-            }
-        }).start();
+//       统计获取车位信息，显示到界面即可
+        requestGetParkingInfo();
     }
-
-
-    private void requestParkingDetailFromNet()
-    {
-        new Thread(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                requestGetCarIn();
-                if (checkCarInRespValid())
-                {
-                    if (fragmentDetailManager.getCurrentIndex() == 0)
-                    {
-                        mHandler.sendEmptyMessage(MSG_GetCarIn);
-                    }
-                }
-
-                requestGetCarOut();
-                if (checkCarOutRespValid())
-                {
-                    if (fragmentDetailManager.getCurrentIndex() == 1)
-                    {
-                        mHandler.sendEmptyMessage(MSG_GetCarOut);
-                    }
-                }
-            }
-        }).start();
-    }
-
 
     @Override
     protected void onSaveInstanceState(Bundle outState)
@@ -1910,7 +1823,6 @@ public class ParkingMonitoringActivity extends AppCompatActivity
                 }
                 case MSG_SETCarOut:
                 {
-                    if (checkSetCarOutInvalid()) return;
 //                    updateSetCarInByOut(setCarOutResp.getData());
                     break;
                 }
@@ -1997,12 +1909,6 @@ public class ParkingMonitoringActivity extends AppCompatActivity
             }
         }
     };
-
-    private boolean checkSetCarOutInvalid()
-    {
-//        if (setCarOutResp == null || setCarOutResp.getData() == null) return true;
-        return false;
-    }
 
     /**
      * 检测数据的是否无效
@@ -2115,8 +2021,9 @@ public class ParkingMonitoringActivity extends AppCompatActivity
         arrayList.add(checkValue(data.getCardNO()));
         arrayList.add(checkValue(data.getDeptName()));
         arrayList.add(checkValue(data.getCardType()));
-        arrayList.add(checkValue("0.00"));
-        arrayList.add(checkValue(data.getOutTime())); // 进场时间 ????
+
+        arrayList.add(checkValue("0.00")); //
+        arrayList.add(checkValue(data.getInTime())); //
         arrayList.add(checkValue(data.getOutTime()));
         arrayList.add(checkValue("0.00"));//收费金额
         arrayList.add(checkValue("0.00")); //累计金额
@@ -2323,6 +2230,100 @@ public class ParkingMonitoringActivity extends AppCompatActivity
     public void onStop()
     {
         super.onStop();
+    }
+
+    // 成功的获取返回值
+    @Override
+    public void success(String url, Object obj)
+    {
+        if (obj == null) return;
+        L.e("success" + "<--->" + url + "," + obj.toString());
+
+        if (obj instanceof SetCarInWithoutCPHResp) //无牌车入场
+        {
+            SetCarInWithoutCPHResp setCarInWithoutCPHResp = (SetCarInWithoutCPHResp) obj;
+
+            dealCarInWithOutCPH(setCarInWithoutCPHResp);
+
+            // 更新画面提示信息
+            updateCarHintToFragment(MSG_CarHintInfoAfterResume, setCarInWithoutCPHResp.getMsg());
+            updateCarChargeToFragment(MSG_SETCarInWithOutCPH, setCarInWithoutCPHResp.getData());
+
+        }
+        else if (obj instanceof GetCardTypeDefResp)
+        {
+            GetCardTypeDefResp resp = (GetCardTypeDefResp) obj;
+            CR.BinDic(resp.getData());
+        }
+        else if (obj instanceof GetCheDaoSetResp)
+        {
+            getCheDaoSetResp = (GetCheDaoSetResp) obj;
+            L.i("getCheDaoSetResp:" + getCheDaoSetResp.getData().size());
+            /**
+             * 4_06 视频显示的画面的逻辑：必定是先显示入场，然后显示出场；
+             *                         入场的图片是在视频播放下面;
+             *      存在的情况：
+             *          前提：最多只有4路显示视频；且不是副摄像头拍摄；
+             *          情况的处理情况如下：
+             *              1，如果入场和出场的总数大于4，即只取前面四路；
+             *              2，如果总通道是1，或入场或出场 且左上角和左下角分别显示视频和图片； 右侧的画面显示数据不存在；
+             *              3，如果总通道是2，且一进一出，那么显示入场再显示出场；
+             *              4，             且两个入场或出场，则分开显示，且下面显示图片；
+             *              5，如果总通数是3，那么全部显示视频，不显示图片；且同样是先入场后出场的顺序
+             *              6，如果总通道是4，那么也是先入口，后出口的方式显示；
+             *         怎么逻辑封装
+             *              1,影响因子，总通道数，通道数 > 2,则不显示图片；
+             *              2,优先显示入场视频；
+             */
+
+            playVideoIn2Video();
+//                if (getCheDaoSetResp.getData().size() <= 2)
+//                {
+//                    playVideoIn2Video();
+//                }
+//                else if (getCheDaoSetResp.getData().size() > 2)
+//                {
+//                    playVideoInGreaterThan2Video();
+//                }
+        }
+        else if (obj instanceof GetNetCameraSetResp)//播放相应的视频数据即可
+        {
+            GetNetCameraSetResp getNetCameraSetResp = (GetNetCameraSetResp) obj;
+            int index = Integer.parseInt(url);
+
+            List<GetNetCameraSetResp.DataBean> data = getNetCameraSetResp.getData();
+            String videoType = data.get(0).getVideoType();
+            switch (videoType)
+            {
+                case "ZNYKTY5":
+                {
+                    L.i("videoType:" + videoType + " index:" + index);
+                    parkingMonitoringView.playVideoByIndex(index, data.get(0).getVideoIP(), mHandler);
+                    break;
+                }
+            }
+        }
+        else if (obj instanceof GetCarInResp)
+        {
+            getCarInResp = (GetCarInResp) obj;
+            mHandler.sendEmptyMessage(MSG_GetCarIn);
+        }
+        else if (obj instanceof GetCarOutResp)
+        {
+            getCarOutResp = (GetCarOutResp) obj;
+            mHandler.sendEmptyMessage(MSG_GetCarOut);
+        }
+        else if (obj instanceof GetParkingInfoResp)
+        {
+            getParkingInfoResp = (GetParkingInfoResp) obj;
+        }
+    }
+
+
+    @Override
+    public void error(String url, String string)
+    {
+
     }
 
     /**
@@ -2794,19 +2795,18 @@ public class ParkingMonitoringActivity extends AppCompatActivity
                                 }
                                 break;
                             case CAR_IN_TYPE_auto_noPlate:// 无牌车手动输入车牌
-                                if (requestUrlRequestWhenNoPlateIn((SetCarInWithoutCPHReq) modelNode.data) >= 0)
+
+                                requestUrlRequestWhenNoPlateIn((SetCarInWithoutCPHReq) modelNode.data);
+
+                                final Bitmap inNoPlateBitmap = BitmapUtils.fileToBitmap(modelNode.getStrFileJpg());
+                                mHandler.post(new Runnable()
                                 {
-                                    String strFileJpg = modelNode.getStrFileJpg();
-                                    final Bitmap bitmap = BitmapUtils.fileToBitmap(strFileJpg);
-                                    mHandler.post(new Runnable()
+                                    @Override
+                                    public void run()
                                     {
-                                        @Override
-                                        public void run()
-                                        {
-                                            dealCPHInfoFromCamera(modelNode.getiDzIndex(), modelNode.getStrCPH(), bitmap, CAR_CHANNEL_IN);
-                                        }
-                                    });
-                                }
+                                        dealCPHInfoFromCamera(modelNode.getiDzIndex(), modelNode.getStrCPH(), inNoPlateBitmap, CAR_CHANNEL_IN);
+                                    }
+                                });
                                 break;
                             case CAR_OUT_TYPE_auto: // 手动接收的车辆出场
                                 if (requestUrlUpdateUIWhenSetCarOut((SetCarOutReq) modelNode.data, modelNode.getiDzIndex(), PlateColorEnum.Unknown) >= 0)
@@ -2907,7 +2907,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity
      */
     private int requestUrlUpdateUIWhenSetCarOut(final SetCarOutReq req, final int index, PlateColorEnum color)
     {
-        final String srcCPH = req.getCPH();
+        final String srcCPH = req.getCPH(); // srcCPH 在请求到服务器时
         SetCarOutResp setCarOutResp = GetServiceData.getInstance().SetCarOut(req);
         if (setCarOutResp == null)
         {
@@ -3010,12 +3010,12 @@ public class ParkingMonitoringActivity extends AppCompatActivity
      */
     public boolean dealSetCarOutRcode(final SetCarOutResp resp, String srcCPH, final int index, final PlateColorEnum color)
     {
-        RCode rCode = RCode.valueOf(Integer.parseInt(resp.getRcode()));
+        RCodeEnum rCodeEnum = RCodeEnum.valueOf(Integer.parseInt(resp.getRcode()));
         final SetCarOutResp.DataBean data = resp.getData();
         L.i("dealSetCarOutRcode:" + data);
-        switch (rCode)
+        switch (rCodeEnum)
         {
-            case BlackList:// 将这部分的问题解决即可;
+            case BlackList:
             {
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume
                         , prepareDetectString(data.getCPH(), srcCPH) + ":" + prepareDetectString(data.getBlackReason(), ""));
@@ -3054,7 +3054,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity
                 /**
                  * 发送语音
                  */
-                requestAddOptLog("在线监控:FlowProcessing", "已过期，请联系管理处" + data.getCardNO());
+                GetServiceData.getInstance().requestAddOptLog("在线监控:FlowProcessing", "已过期，请联系管理处" + data.getCardNO());
                 return false;
             }
             case BalanceNotEnough:
@@ -3073,7 +3073,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity
                  */
                 return false;
             }
-            case NotFoundApproachRecord: // 没有发卡行记录
+            case NotFoundApproachRecord: // 没有发卡行记录，弹出入场的画面;
             {
                 L.i("data.getImagePath():" + data.getImagePath());
 //                ShowImage(index, data.getImagePath());
@@ -3089,7 +3089,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity
                                 , data
                                 , filesJpg
                                 , mHandler);
-
+                        parkingTempGob_bigViewSub.setCallback(new RefreshParkingMonitorView());
                         parkingTempGob_bigViewSub.show();
                     }
                 });
@@ -3107,7 +3107,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity
             default:
             {
                 // 弹出对话框方便进行显示信息
-                L.i("rCode:" + "no find valid type");
+                L.i("rCodeEnum:" + "no find valid type");
                 return false;
             }
         }
@@ -3121,48 +3121,136 @@ public class ParkingMonitoringActivity extends AppCompatActivity
             {
                 if (cardType.substring(0, 3).equals("Mth")
                         || cardType.substring(0, 3).equals("Str")
-                        || cardType.substring(0, 3).equals("Fre"))
+                        || cardType.substring(0, 3).equals("Fre")) // 固定车确认开闸
                 {
+                    final Map<String, Object> objectObjectTreeMap = new TreeMap<>();
+                    objectObjectTreeMap.put("laneIndex", index);
+                    objectObjectTreeMap.put("CardNO", data.getCardNO());
+                    objectObjectTreeMap.put("CPH", data.getCPH());
+                    objectObjectTreeMap.put("CardType", data.getCardType());
+                    objectObjectTreeMap.put("InTime", data.getInTime());
+                    objectObjectTreeMap.put("OutTime", data.getOutTime());
+                    objectObjectTreeMap.put("InOutName", data.getInOutName());
+                    objectObjectTreeMap.put("RemainingDays", data.getRemainingDays());
+                    objectObjectTreeMap.put("RemainingPlaceCount", data.getRemainingPlaceCount());
+
+                    mHandler.post(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            ParkingMthCPHView parkingMthCPHView = new ParkingMthCPHView(ParkingMonitoringActivity.this, objectObjectTreeMap)
+                            {
+                                @Override
+                                public void onCancelChargeClick()
+                                {
+                                    new Thread(new Runnable()
+                                    {
+                                        @Override
+                                        public void run()
+                                        {
+                                            requestCancelCharge(data);
+                                        }
+                                    }).start();
+                                }
+                            };
+                            parkingMthCPHView.show();
+                        }
+                    });
 
                 }
                 else if (cardType.substring(0, 3).equals("Tmp")
-                        || cardType.substring(0, 3).equals("Mtp"))
+                        || cardType.substring(0, 3).equals("Mtp"))//临时车和月临车，开闸确认弹出收费窗口
                 {
-
+                    mHandler.post(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            ParkingTempGob_bigViewSub parkingTempGob_bigViewSub = new ParkingTempGob_bigViewSub(ParkingMonitoringActivity.this
+                                    , ParkingTempGob_bigView.E_VIEW_TYPE.E_VIEW_CHARGE_HAVA_RECORD
+                                    , PlateColorEnum.Unknown
+                                    , index
+                                    , data
+                                    , filesJpg
+                                    , mHandler);
+                            parkingTempGob_bigViewSub.setCallback(new RefreshParkingMonitorView());
+                            parkingTempGob_bigViewSub.show();
+                        }
+                    });
                 }
                 else if (cardType.substring(0, 3).equals("Mth"))
                 {
+                    final Map<String, Object> objectObjectTreeMap = new TreeMap<>();
+                    objectObjectTreeMap.put("laneIndex", index);
+                    objectObjectTreeMap.put("CardNO", data.getCardNO());
+                    objectObjectTreeMap.put("CPH", data.getCPH());
+                    objectObjectTreeMap.put("CardType", data.getCardType());
+                    objectObjectTreeMap.put("OutTime", data.getOutTime());
+                    objectObjectTreeMap.put("InOutName", data.getInOutName());
+                    objectObjectTreeMap.put("RemainingDays", data.getRemainingDays());
+                    objectObjectTreeMap.put("RemainingPlaceCount", data.getRemainingPlaceCount());
 
+                    mHandler.post(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            ParkingMthCPHView parkingMthCPHView = new ParkingMthCPHView(ParkingMonitoringActivity.this, objectObjectTreeMap)
+                            {
+                                @Override
+                                public void onCancelChargeClick()
+                                {
+                                    new Thread(new Runnable()
+                                    {
+                                        @Override
+                                        public void run()
+                                        {
+                                            requestCancelCharge(data);
+                                        }
+                                    }).start();
+                                }
+                            };
+                            parkingMthCPHView.show();
+                        }
+                    });
                 }
             }
-            else
+            else// 不确认开闸
             {
                 if (cardType.substring(0, 3).equals("Mth")
                         || cardType.substring(0, 3).equals("Str")
                         || cardType.substring(0, 3).equals("Fre"))
                 {
-
+                    // 发送一堆语音
                 }
                 else if (cardType.substring(0, 3).equals("Tmp")
                         || cardType.substring(0, 3).equals("Mtp"))
                 {
-
-                }
-                else if (cardType.substring(0, 3).equals("Mth"))
-                {
-
+                    if (Model.iAutoKZ == 1 && data.getSFJE() == 0)
+                    {
+//                        cmd.SendOpen(modulus);
+//                        cmd.VoiceDisplay(VoiceType.TempOutOpen, laneIndex);
+                    }
+                    else
+                    {
+                        //发送语音
+                    }
                 }
             }
 
             if (openMode == OpenWayEnum.NoCutOff.getValue() && cardType.substring(0, 3).equals("Tmp"))
             {
                 // 临时车不开闸
+//                cmd.LoadLsNoX2010znykt(laneIndex, "ADD4");
+                return false;
             }
             else
             {
                 // 发送数据到控制板
+//                SurplusCPH
             }
-            // ShowImage
+            // ShowImage(laneIndex, appearanceResult.Model.ImagePath);
             // 显示picture 进出口图片
         }
         mHandler.post(new Runnable()
@@ -3171,56 +3259,24 @@ public class ParkingMonitoringActivity extends AppCompatActivity
             public void run()
             {
                 updateSetCarInByOut(data);
+                if (data.getCardType().substring(0, 3).equals("Mth") || data.getCardType().substring(0, 3).equals("Fre"))
+                {
+                    fragmentChargeManager.setChargeInfoValidMoneyVisiable(View.INVISIBLE);
+                    fragmentChargeManager.setChargeInfoReminderValueVisiable(View.INVISIBLE);
+                }
+                else
+                {
+                    fragmentChargeManager.setChargeInfoValidMoneyVisiable(View.VISIBLE);
+                    fragmentChargeManager.setChargeInfoReminderValueVisiable(View.VISIBLE);
+
+                    fragmentChargeManager.setChargeInfoReminderValue(String.valueOf(data.getBalance()));
+                    fragmentChargeManager.setChargeInfoValidMoneyValue("剩余金额:");
+                }
             }
         });
         return true;
     }
 
-
-    /**
-     * 1, 获取车道信息
-     *
-     * @return
-     */
-    private boolean requestGetCheDaoSet()
-    {
-        GetCheDaoSetReq req = new GetCheDaoSetReq();
-        req.setToken(Model.token);
-        req.setJsonSearchParam(JsonSearchParam.getWhenGetCheDaoSet(String.valueOf(Model.stationID)));
-        req.setOrderField(OrderField.getWhenGetCheDaoSet("desc", "asc", "asc"));
-        getCheDaoSetResp = GetServiceData.getInstance().GetCheDaoSet(req);
-        if (getCheDaoSetResp == null || getCheDaoSetResp.getData() == null)
-        {
-            return false;
-        }
-
-        Model.iChannelCount = getCheDaoSetResp.getData().size();
-        return true;
-    }
-
-    /**
-     * 2，获取网络相机的信息
-     *
-     * @param cameraIP
-     * @return
-     */
-    private boolean requestGetNetCameraSet(String cameraIP)
-    {
-        GetNetCameraSetReq req = new GetNetCameraSetReq();
-        req.setToken(Model.token);
-        req.setJsonSearchParam(JsonSearchParam.getWhenGetCameraSet(cameraIP));
-        GetNetCameraSetResp getNetCameraSetResp = GetServiceData.getInstance().GetNetCameraSet(req);
-        if (getNetCameraSetResp != null)
-        {
-            netCameraList.add(getNetCameraSetResp); // 一个个放进去
-            return true;
-        }
-        else
-        {//防止出现错的情况，还是存放一个空的
-            netCameraList.add(new GetNetCameraSetResp());
-            return false;
-        }
-    }
 
     /**
      * 3, 获取在 车场内车辆明细信息
@@ -3231,6 +3287,26 @@ public class ParkingMonitoringActivity extends AppCompatActivity
         req.setToken(Model.token);
         req.setOrderField(OrderField.getWhenGetCarIn("desc"));
         req.setJsonSearchParam(JsonSearchParam.getWhenGetCarOutAndIn(String.valueOf(Model.iParkingNo)));
+
+        String resultUrl = GetServiceData.getInstance().getResultUrl(METHOD_GETCARIN, req);
+        RequestManager
+                .getInstance()
+                .get(resultUrl, new GsonCallback<>(GetCarInResp.class, this, resultUrl));
+    }
+
+    private void requestGetCarIn(String cph, String inName, String inOpeator)
+    {
+        GetCarInReq req = new GetCarInReq();
+        req.setToken(Model.token);
+        req.setOrderField(OrderField.getWhenGetCarIn("desc"));
+
+        Map<String, String> map = new LinkedHashMap<String, String>();
+        map.put("CarparkNO", String.valueOf(Model.iParkingNo));
+        map.put("CPH", cph);
+        map.put("InGateName", inName);
+        map.put("InOperator", inOpeator);
+
+        req.setJsonSearchParam(JsonSearchParam.getWhenGetCarOutAndIn(map));
         getCarInResp = GetServiceData.getInstance().GetCarIn(req);
     }
 
@@ -3243,6 +3319,27 @@ public class ParkingMonitoringActivity extends AppCompatActivity
         req.setToken(Model.token);
         req.setOrderField(OrderField.getWhenGetCarOut("desc"));
         req.setJsonSearchParam(JsonSearchParam.getWhenGetCarOutAndIn(String.valueOf(Model.iParkingNo)));
+
+        String resultUrl = GetServiceData.getInstance().getResultUrl(METHOD_GETCAROUT, req);
+        RequestManager
+                .getInstance()
+                .get(resultUrl, new GsonCallback<>(GetCarOutResp.class, this, resultUrl));
+    }
+
+
+    private void requestGetCarOut(String cph, String outName, String outOpeator)
+    {
+        GetCarOutReq req = new GetCarOutReq();
+        req.setToken(Model.token);
+        req.setOrderField(OrderField.getWhenGetCarOut("desc"));
+
+        Map<String, String> map = new LinkedHashMap<String, String>();
+        map.put("CarparkNO", String.valueOf(Model.iParkingNo));
+        map.put("CPH", cph);
+        map.put("OutGateName", outName);
+        map.put("OutOperator", outOpeator);
+
+        req.setJsonSearchParam(JsonSearchParam.getWhenGetCarOutAndIn(map));
         getCarOutResp = GetServiceData.getInstance().GetCarOut(req);
     }
 
@@ -3255,7 +3352,10 @@ public class ParkingMonitoringActivity extends AppCompatActivity
         req.setToken(Model.token);
         req.setStationId(Model.stationID);
         req.setStartTime(TimeConvertUtils.longToString("yyyyMMddHHmmss", System.currentTimeMillis()));
-        getParkingInfoResp = GetServiceData.getInstance().GetParkingInfo(req);
+        String resultUrl = GetServiceData.getInstance().getResultUrl(METHOD_GETPARKINGINFO, req);
+        RequestManager
+                .getInstance()
+                .get(resultUrl, new GsonCallback<>(GetParkingInfoResp.class, this, resultUrl));
     }
 
     /**
@@ -3289,7 +3389,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity
         }
 
         L.i("requestUrlUpdateUiWhenSetIn:" + srcCPH);
-        dealSetCarInResponse(setCarInResp,srcCPH, index, color);
+        dealSetCarInResponse(setCarInResp, srcCPH, index, color);
 
         return 0;
     }
@@ -3328,29 +3428,14 @@ public class ParkingMonitoringActivity extends AppCompatActivity
      * @return
      */
     @Nullable
-    private int requestUrlRequestWhenNoPlateIn(SetCarInWithoutCPHReq carInWithoutCPHReq)
+    private void requestUrlRequestWhenNoPlateIn(SetCarInWithoutCPHReq carInWithoutCPHReq)
     {
         L.i("无牌车进场数据:" + carInWithoutCPHReq);
-        final SetCarInWithoutCPHResp setCarInWithoutCPHResp = GetServiceData.getInstance().SetCarInWithoutCPH(carInWithoutCPHReq);
-        if (setCarInWithoutCPHResp == null)
-        {
-            return -1;
-        }
 
-        dealCarInWithOutCPH(setCarInWithoutCPHResp);
-
-        // 更新画面提示信息
-        updateCarHintToFragment(MSG_CarHintInfoAfterResume, setCarInWithoutCPHResp.getMsg());
-
-        mHandler.post(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                updateCarChargeToFragment(MSG_SETCarInWithOutCPH, setCarInWithoutCPHResp.getData());
-            }
-        });
-        return 0;
+        String resultUrl = GetServiceData.getResultUrl(METHOD_SETCARINWITHOUTCPH, carInWithoutCPHReq);
+        RequestManager
+                .getInstance()
+                .get(resultUrl, new GsonCallback<>(SetCarInWithoutCPHResp.class, this, resultUrl));
     }
 
     /**
@@ -3473,23 +3558,6 @@ public class ParkingMonitoringActivity extends AppCompatActivity
     }
 
     /**
-     * 证件抓拍
-     */
-    private UpdateChargeWithCaptureImageResp requestUpdateChargeWithCaptureImage()
-    {
-        UpdateChargeWithCaptureImageReq req = new UpdateChargeWithCaptureImageReq(); // 填充相应的字段数据
-        UpdateChargeWithCaptureImageResp resp = GetServiceData.getInstance().UpdateChargeWithCaptureImage(req);
-        if (resp == null)
-        {
-            return null;
-        }
-        else
-        {
-            return resp;
-        }
-    }
-
-    /**
      * 取消收费接口
      */
     private CancelChargeResp requestCancelCharge()
@@ -3506,15 +3574,28 @@ public class ParkingMonitoringActivity extends AppCompatActivity
         }
     }
 
-    /**
-     * 发送日记请求
-     */
-    private void requestAddOptLog(String menu, String content)
+
+    private void requestCancelCharge(SetCarOutResp.DataBean data)
     {
-        AddOptLogReq req = new AddOptLogReq();
+        CancelChargeReq req = new CancelChargeReq();
         req.setToken(Model.token);
-        req.setJsonModel(getAddOptLogText(menu, content));
-        GetServiceData.getInstance().AddOptLog(req);
+        req.setCardNO(data.getCardNO());
+        req.setCardType(data.getCardType());
+        req.setOutTime(data.getOutTime());
+        CancelChargeResp resp = GetServiceData.getInstance().CancelCharge(req);
+        if (resp == null) return;
+        if (resp.getData() <= 0)
+        {
+            L.i("CancelCharge........" + resp.getData());
+            mHandler.post(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    MessageBox.show(ParkingMonitoringActivity.this, "取消收费失败！" + "\r\n" + "btnOK_Click");
+                }
+            });
+        }
     }
 
     private String filesJpg; //表示当前图片所有的路径
@@ -3543,5 +3624,212 @@ public class ParkingMonitoringActivity extends AppCompatActivity
             }
         }
     }
+
+    public class RefreshParkingMonitorView implements ParkingTempGob_bigViewSub.ICallBack
+    {
+        @Override
+        public void updateAppearanceRecord(SetCarOutResp.DataBean appearanceModel, int laneIndex, String localImagePath)// 车辆开闸的时候触发
+        {
+            parkingMonitoringView.setCPHText(laneIndex, appearanceModel.getCPH()); // 设置视频显示下的车牌号
+            updateSetCarInByOut(appearanceModel);
+            parkingMonitoringView.setSurplusCarCount(String.valueOf(appearanceModel.getRemainingPlaceCount()));
+
+            // 处理图片 --
+
+            GetBinInOut();
+            loadCar();
+        }
+
+        @Override
+        public void tempGob_big_Photo(String count)//点击照片抓拍时触发
+        {//最后构建File路径
+//            string Filebmps = "", PathStr = "";
+//            DateTime MyCapDateTime;
+//
+//            if (Model.sImageSavePath.Substring(Model.sImageSavePath.Length - 1) != @"\") // @在前表示不要转义;
+//            {
+//                Model.sImageSavePath = Model.sImageSavePath + @"\";
+//            }
+//            MyCapDateTime = DateTime.Now;
+//            PathStr = Model.sImageSavePath + MyCapDateTime.ToString("yyyyMMdd");
+//            if (System.IO.Directory.Exists(PathStr) == false)
+//            {
+//                System.IO.Directory.CreateDirectory(PathStr);//创建路径
+//            }
+//            Filebmps = PathStr + @"\" + monitor.CardNo + MyCapDateTime.ToString("yyyyMMddHHmmss") + "证件" + ".bmp";
+//            File = PathStr + @"\" + monitor.CardNo + MyCapDateTime.ToString("yyyyMMddHHmmss") + "证件" + ".jpg";
+        }
+
+        @Override
+        public void binData(String CardType, double SFJE)//在改变车辆类型时，触发回调
+        {
+            if (CR.IsChineseCharacters(CardType))
+            {
+                fragmentChargeManager.setChargeInfoCardType(CardType);
+            }
+            else
+                fragmentChargeManager.setChargeInfoCardType(CR.GetCardType(CardType, 1));
+            fragmentChargeManager.setChargeInfoPayMoney(String.valueOf(SFJE));
+        }
+    }
+
+    /**
+     * 更新详细信息
+     */
+    private void GetBinInOut()
+    {
+        // 更新进场出场数据
+        final String searchCPHText = parkingMonitoringView.getSearchCPHText();
+        final String inName = parkingMonitoringView.getInOutName(0);
+        final String inOpeator = parkingMonitoringView.getInOutOperator(0);
+
+        final String outName = parkingMonitoringView.getInOutName(1);
+        final String outOpeator = parkingMonitoringView.getInOutOperator(1);
+
+        new Thread(new Runnable()
+        {
+            @Override
+            public void run() // 更新界面数据
+            {
+                requestGetCarOut(searchCPHText, outName, outOpeator);
+                if (checkCarOutRespValid())
+                {
+                    mHandler.sendEmptyMessage(MSG_GetCarOut);
+                }
+
+                requestGetCarIn(searchCPHText, inName, inOpeator);
+                if (checkCarInRespValid())
+                {
+                    mHandler.sendEmptyMessage(MSG_GetCarIn);
+                }
+            }
+        }).start();
+    }
+
+    /**
+     * 统计车位信息
+     */
+    private int outCarCount;
+    public Summary summary0 = new Summary();
+
+    private void loadCar()
+    {
+        new Thread(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                requestGetParkingInfo();
+                if (checkCarParkingInfoInvalid())
+                {
+                    return;
+                }
+
+                GetParkingInfoResp.DataBean data = getParkingInfoResp.getData();
+
+                summary0.setMthCount(data.getMonthCarCountInPark());
+                summary0.setTmpCount(data.getTempCarCountInPark());
+                summary0.setFreCount(data.getFreeCarCountInPark());
+                summary0.setStrCount(data.getStrCarCountInPark());
+                outCarCount = 0;
+                if (Model.bPaiChe)
+                {
+                    summary0.setOutCount(outCarCount);
+//                    UpdateUiText(lblOutCount, summary0.OutCount.ToString());lblOutCount没有显示 Collapsed没有显示
+                }
+
+                if (Model.iFreeCardNoInPlace == 1)
+                {
+                    summary0.setSurplusCarCount((Model.iParkTotalSpaces - data.getTotalCarCountInPark() + data.getFreeCarCountInPark()));
+                    //免费车不计入车位数 （iModifyCarPos没用到）
+                    //summary.SurplusCarCount = (Model.iParkTotalSpaces - pi.TotalCarCountInPark + pi.FreeCarCountInPark).ToString();
+                }
+                else
+                {
+                    summary0.setSurplusCarCount(Model.iParkTotalSpaces - data.getTotalCarCountInPark());
+                    //summary.SurplusCarCount = (Model.iParkTotalSpaces - pi.TotalCarCountInPark).ToString();
+                }
+
+                if (Model.bTempCarPlace)
+                {
+                    summary0.setSurplusCarCount(Model.iTempCarPlaceNum - data.getTempCarCountInPark());
+                    summary0.setOutCount(Model.iMonthCarPlaceNum - data.getMonthCarCountInPark());
+                    //summary.SurplusCarCount = (Model.iTempCarPlaceNum - pi.TempCarCountInPark).ToString();
+                    //lblOutCount.Content = (Model.iMonthCarPlaceNum - pi.MonthCarCountInPark).ToString();
+
+                    mHandler.post(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            fragmentChargeManager.setCarSpaceOutCountHint("固定车位:");
+                            fragmentChargeManager.setCarSpaceOutCountValue(String.valueOf(summary0.getOutCount()));
+                            parkingMonitoringView.setSurplusCarCountHint("临时车位");
+                        }
+                    });
+                    //grpSurplusCarCount.Header = "临时车位";
+                    //lblOutCount.Visibility = Visibility.Visible;
+                    //lblOut.Content = "固定车位:";
+                }
+                else if (Model.bMonthCarPlace)
+                {
+                    summary0.setSurplusCarCount(Model.iMonthCarPlaceNum - data.getMonthCarCountInPark());
+                    summary0.setOutCount(Model.iMonthCarPlaceNum - data.getMonthCarCountInPark());
+
+                    //summary.SurplusCarCount = (Model.iMonthCarPlaceNum - pi.MonthCarCountInPark).ToString();
+                    //lblOutCount.Content = (Model.iTempCarPlaceNum - pi.TempCarCountInPark).ToString();
+                    mHandler.post(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            fragmentChargeManager.setCarSpaceOutCountHint("固定车位:");
+                            fragmentChargeManager.setCarSpaceOutCountValue(String.valueOf(summary0.getOutCount()));
+                            parkingMonitoringView.setSurplusCarCountHint("临时车位");
+                        }
+                    });
+                    //grpSurplusCarCount.Header = "固定车位：";
+                    //lblOutCount.Visibility = Visibility.Visible;
+                    //lblOut.Content = "临时车位：";
+                }
+                else if (Model.bMoneyCarPlace)
+                {
+                    summary0.setSurplusCarCount(Model.iMoneyCarPlaceNum - data.getStrCarCountInPark());
+                    summary0.setOutCount(Model.iMonthCarPlaceNum - data.getMonthCarCountInPark());
+
+                    //summary.SurplusCarCount = (Model.iMoneyCarPlaceNum - pi.PrepaidCarCountInPark).ToString();
+                    //lblOutCount.Content = (Model.iMonthCarPlaceNum - pi.MonthCarCountInPark).ToString();
+                    mHandler.post(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            fragmentChargeManager.setCarSpaceOutCountHint("固定车位:");
+                            fragmentChargeManager.setCarSpaceOutCountValue(String.valueOf(summary0.getOutCount()));
+                            parkingMonitoringView.setSurplusCarCountHint("储值车位");
+                        }
+                    });
+
+                    //grpSurplusCarCount.Header = "储值车位：";
+                    //lblOutCount.Visibility = Visibility.Visible;
+                    //lblOut.Content = "固定车位：";
+                }
+
+            }
+        }).start();
+    }
+
+    private void ImageProcessing(
+            String localImagePath // 本地存放路径
+            , String networkImagePath    // 服务器请求数据返回的路径
+            , int laneIndex
+            , boolean isUpload // 上传
+            , boolean isDown
+    ) //下载
+    {
+
+    }
+
+
 }
 

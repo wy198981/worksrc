@@ -87,6 +87,8 @@ public class SetCarOutResp
         // 4_12自己添加的
         private String InTime;
         private double SFJE;
+        private double YSJE;
+        private Object DiscountSet;
 
         public String getInTime()
         {
@@ -128,8 +130,7 @@ public class SetCarOutResp
             DiscountSet = discountSet;
         }
 
-        private double YSJE;
-        private Object DiscountSet;
+
 
         @Override
         public String toString()

@@ -2,12 +2,12 @@ package com.example.administrator.myparkingos;
 
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
@@ -17,9 +17,8 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.example.administrator.mydistributedparkingos.R;
-import com.example.administrator.myparkingos.constant.ConstantConfig;
+import com.example.administrator.myparkingos.constant.NetworkConfig;
 import com.example.administrator.myparkingos.constant.ConstantSharedPrefs;
-import com.example.administrator.myparkingos.constant.GlobalParams;
 import com.example.administrator.myparkingos.constant.JsonSearchParam;
 import com.example.administrator.myparkingos.model.GetServiceData;
 import com.example.administrator.myparkingos.model.beans.Model;
@@ -47,13 +46,14 @@ import com.example.administrator.myparkingos.util.MD5Utils;
 import com.example.administrator.myparkingos.util.RegexUtil;
 import com.example.administrator.myparkingos.util.SPUtils;
 import com.example.administrator.myparkingos.util.T;
-import com.example.administrator.myparkingos.util.TimeConvertUtils;
 import com.example.administrator.myparkingos.util.WeakHandler;
+import com.example.administrator.myparkingos.volleyUtil.callback.GsonCallback;
+import com.jude.http.RequestManager;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class LoginActivity extends AppCompatActivity implements View.OnClickListener
+public class LoginActivity extends AppCompatActivity implements View.OnClickListener, GsonCallback.Listener
 {
     private final String TAG = "LoginActivity";
 
@@ -80,6 +80,14 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     private GetServerTimeResp serverTime;
     private GetOperatorsResp getOperatorsResp;
     private GetRightsByGroupIDResp getRightsByGroupIDResp;
+    public static final String METHOD_GETOPERATORSWITHOUTLOGIN = "GetOperatorsWithoutLogin";
+    public static final String METHOD_GETSTATIONSETWITHOUTLOGIN = "GetStationSetWithoutLogin";
+    public static final String METHOD_LOGINUSER = "LoginUser";
+    public static final String METHOD_GETSYSSETTINGOBJECT = "GetSysSettingObject";
+    public static final String METHOD_GETSERVERTIME = "getServerTime";
+    public static final String METHOD_GETOPERATORS = "GetOperators";
+    public static final String METHOD_GETRIGHTSBYGROUPID = "GetRightsByGroupID";
+    public static final String METHOD_GETCHEDAOSET = "GetCheDaoSet";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -108,8 +116,8 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
      */
     private void createConfigSettings()
     {
-        SPUtils.put(ConstantSharedPrefs.FileAppSetting, getApplicationContext(), ConstantSharedPrefs.ServiceIP, ConstantConfig.ServerIP);
-        SPUtils.put(ConstantSharedPrefs.FileAppSetting, getApplicationContext(), ConstantSharedPrefs.ServicePort, ConstantConfig.ServerPort);
+        SPUtils.put(ConstantSharedPrefs.FileAppSetting, getApplicationContext(), ConstantSharedPrefs.ServiceIP, NetworkConfig.ServerIP);
+        SPUtils.put(ConstantSharedPrefs.FileAppSetting, getApplicationContext(), ConstantSharedPrefs.ServicePort, NetworkConfig.ServerPort);
     }
 
     private void initView()
@@ -185,26 +193,19 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     {
         if (!checkUIInput()) return;
         final String password = et_password.getEditableText().toString();
-
-        new Thread(new Runnable()
+        try
         {
-            @Override
-            public void run()
-            {
-                try
-                {
-                    md5Password = MD5Utils.MD5(password);
-                }
-                catch (Exception e)
-                {
-                    e.printStackTrace();
-                }
-                Model.sUserPwd = md5Password;
-                requestLoginUser();
-                handlerLoginRequest();
-            }
-        }).start();
+            md5Password = MD5Utils.MD5(password);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        Model.sUserPwd = md5Password;
+
+        requestLoginUser();
     }
+
 
     /**
      * 检测ui的合法性数据
@@ -242,8 +243,6 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             String tempStationID = (String) SPUtils.get(ConstantSharedPrefs.FileAppSetting, getApplicationContext()
                     , ConstantSharedPrefs.StationID, "");
 
-            Model.serverIP = serviceIP;
-            Model.serverPort = servicePort; // 重新读取服务器的配置文件
             L.i("serverIP:" + serviceIP + ",servicePort:" + servicePort);
             GetServiceData.getInstance().setAddressAndPort(serviceIP, servicePort);
 
@@ -256,32 +255,8 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             }
             else
             {
-                new Thread(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        requestGetOperatorNOLogin();
-                        mHandler.post(new Runnable()
-                        {
-                            @Override
-                            public void run()
-                            {
-                                updateUserName();
-                            }
-                        });
-
-                        requestGetStationNoLogin();
-                        mHandler.post(new Runnable()
-                        {
-                            @Override
-                            public void run()
-                            {
-                                updateStationName();
-                            }
-                        });
-                    }
-                }).start();
+                requestGetOperatorNoLogin();
+                requestGetStationNoLogin();
 
                 mHandler.postDelayed(new Runnable()
                 {
@@ -295,7 +270,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                             startActivity(intent);
                         }
                     }
-                }, 3000);
+                }, 5000);
             }
         }
         else
@@ -307,8 +282,12 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
     private void updateStationName()
     {
+        if (getStationSetWithoutLoginResp == null)
+        {
+            L.i("getStationSetWithoutLoginResp == null");
+        }
         if (getStationSetWithoutLoginResp != null
-                || getStationSetWithoutLoginResp.getData() != null)
+                && getStationSetWithoutLoginResp.getData() != null)
         {
             setSpinnerStationName(getStationSetWithoutLoginResp.getData());
         }
@@ -403,8 +382,8 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     {
         if (getStationSetWithoutLoginResp != null
                 && getStationSetWithoutLoginResp.getData() != null
-                && getOperatorsWithoutLoginResp.getData().size() > 0
-                && (index >= 0 && index < getOperatorsWithoutLoginResp.getData().size()))
+                && getStationSetWithoutLoginResp.getData().size() > 0
+                && (index >= 0 && index < getStationSetWithoutLoginResp.getData().size()))
         {
             return getStationSetWithoutLoginResp.getData().get(index).getStationId();
         }
@@ -416,8 +395,8 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     {
         if (getStationSetWithoutLoginResp != null
                 && getStationSetWithoutLoginResp.getData() != null
-                && getOperatorsWithoutLoginResp.getData().size() > 0
-                && (index >= 0 && index < getOperatorsWithoutLoginResp.getData().size()))
+                && getStationSetWithoutLoginResp.getData().size() > 0
+                && (index >= 0 && index < getStationSetWithoutLoginResp.getData().size()))
         {
             return getStationSetWithoutLoginResp.getData().get(index).getCarparkNO();
         }
@@ -457,14 +436,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
                 else // 不相等
                 {
                     // 界面判断是否需要切换工作站点
-                    mHandler.post(new Runnable()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            showWorkStationSwitchDialog("是否切换工作站，请谨慎操作?", indexStationId);
-                        }
-                    });
+                    showWorkStationSwitchDialog("是否切换工作站，请谨慎操作?", indexStationId);
                 }
             }
             else// 初次登录时，站点不存在时
@@ -479,29 +451,9 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
 
     private void enterNextSetting()
     {
-        new Thread(new Runnable()//        DataSourceToPubVar() 获取车场设置，主要是对Model的数据的填充
-        {
-            @Override
-            public void run()
-            {
-                // 获取系统设置
-                GetSysSettingObjectResp resp = requestSysSettingObject();
-                if (resp == null) return;
-                // 将数据存储到Model
-                Model.setSysSettingToPubVar(resp.getData());
+        requestGetSysSettingsObject();
 
-            }
-        }).start();
-
-        // 设置本地日期格式，从服务器获取时间 http://192.168.2.158:9000/ParkAPI/getServerTime?token=806f13c43e7044c1a268bc6a09e00c81
-        new Thread(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                requestSysTime();
-            }
-        }).start();
+        requestGetServerTime();
 
         // 数据定义
 
@@ -514,7 +466,6 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             long result = (long) SPUtils.get(ConstantSharedPrefs.FileAppSetting, getApplicationContext()
                     , ConstantSharedPrefs.LoginDate, 0L);
             Model.dLoginTime = result;
-
         }
         else
         {
@@ -528,55 +479,39 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         // 设置本地日期格式
 
         // 获取操作员信息
-        new Thread(new Runnable()
+        GetOperatorsReq getOperatorsReq = new GetOperatorsReq();
+        getOperatorsReq.setToken(Model.token);
+        getOperatorsReq.setJsonSearchParam(JsonSearchParam.getWhenGetOperators(getUserNoFromList(indexUserName)));
+
+        requestGetOperators(getOperatorsReq);
+    }
+
+
+    private void handlerGetOperators()
+    {
+        if (getOperatorsResp != null && getOperatorsResp.getData() != null
+                && getOperatorsResp.getData().size() > 0)
         {
-            @Override
-            public void run()
-            {
-                requestGetOperators();
+            Model.sUserName = getOperatorsResp.getData().get(0).getUserName();
+            Model.sUserCard = getOperatorsResp.getData().get(0).getCardNO();
+            Model.sGroupNo = getOperatorsResp.getData().get(0).getUserLevel();
 
-                if (getOperatorsResp != null && getOperatorsResp.getData() != null
-                        && getOperatorsResp.getData().size() > 0)
-                {
-                    Model.sUserName = getOperatorsResp.getData().get(0).getUserName();
-                    Model.sUserCard = getOperatorsResp.getData().get(0).getCardNO();
-                    Model.sGroupNo = getOperatorsResp.getData().get(0).getUserLevel();
+            // 获取权限组
+            GetRightsByGroupIDReq getRightsByGroupIDReq = new GetRightsByGroupIDReq();
+            getRightsByGroupIDReq.setToken(Model.token);
+            getRightsByGroupIDReq.setGroupID(Model.sGroupNo);
 
-                    // 获取权限组
-                    requestGetRightByID();
+            requestGetRightsByGroupID(getRightsByGroupIDReq);
+        }
+    }
 
-                    if (getRightsByGroupIDResp != null && getRightsByGroupIDResp.getData() != null)
-                    {
-                        Model.lstRights = getRightsByGroupIDResp.getData();
-                    }
 
-                    mHandler.post(new Runnable()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            if (Model.lstRights == null || Model.lstRights.size() <= 0)
-                            {
-                                Toast.makeText(LoginActivity.this, "无进入在线监控权限", Toast.LENGTH_SHORT).show();
-                            }
-                            else
-                            {
-                                // 获取是否有在线监控的权限
-                                if (isHaveRightsByName("在线监控", "CmdView"))
-                                {
-                                    Intent intent = new Intent(LoginActivity.this, ParkingMonitoringActivity.class);
-                                    startActivity(intent);
-                                }
-                                else
-                                {
-                                    Toast.makeText(LoginActivity.this, "无进入在线监控权限", Toast.LENGTH_SHORT).show();
-                                }
-                            }
-                        }
-                    });
-                }
-            }
-        }).start();
+    @NonNull
+    private GetServerTimeReq initGetServerTime()
+    {
+        GetServerTimeReq getServerTimeReq = new GetServerTimeReq();
+        getServerTimeReq.setToken(Model.token);
+        return getServerTimeReq;
     }
 
 
@@ -635,26 +570,15 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         mHandler.removeCallbacksAndMessages(null);
     }
 
-    private void showMsgToScreen(final String msg)
-    {
-        mHandler.post(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                T.showShort(LoginActivity.this, msg);
-            }
-        });
-    }
-
-
     /**
      * 1 获取操作员信息
      */
-    private void requestGetOperatorNOLogin()
+    private void requestGetOperatorNoLogin()
     {
-        GetOperatorsWithoutLoginReq req = new GetOperatorsWithoutLoginReq();
-        getOperatorsWithoutLoginResp = GetServiceData.getInstance().GetOperatorsWithoutLogin(req);
+        String resultUrl = GetServiceData.getResultUrl(METHOD_GETOPERATORSWITHOUTLOGIN, new GetOperatorsWithoutLoginReq());
+        RequestManager
+                .getInstance()
+                .get(resultUrl, new GsonCallback<>(GetOperatorsWithoutLoginResp.class, this, resultUrl));
     }
 
     /**
@@ -664,13 +588,72 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     {
         GetStationSetWithoutLoginReq stationReq = new GetStationSetWithoutLoginReq();
         stationReq.setOrderField("StationId");
-        getStationSetWithoutLoginResp = GetServiceData.getInstance().GetStationSetWithoutLogin(stationReq);
+
+        final String resultUrl = GetServiceData.getResultUrl(METHOD_GETSTATIONSETWITHOUTLOGIN, stationReq);
+        RequestManager
+                .getInstance()
+                .get(resultUrl, new GsonCallback<>(GetStationSetWithoutLoginResp.class, this, resultUrl));
     }
 
     /**
-     * 3 获取登录消息用户的token
+     * 3，请求登录
      */
-    private boolean requestLoginUser()
+    private void requestLoginUser()
+    {
+        String resultUrl = GetServiceData.getResultUrl(METHOD_LOGINUSER, initLoginUserReq());
+        RequestManager
+                .getInstance()
+                .get(resultUrl, new GsonCallback<>(LoginUserResp.class, this, resultUrl));
+    }
+
+    /**
+     * 请求系统时间
+     */
+    private void requestGetServerTime()
+    {
+        String url = GetServiceData.getResultUrl(METHOD_GETSERVERTIME, initGetServerTime());
+        RequestManager
+                .getInstance()
+                .get(url, new GsonCallback<>(GetServerTimeResp.class, this, url));
+    }
+
+    /**
+     * 系统设置
+     */
+    private void requestGetSysSettingsObject()
+    {
+        String resultUrl = GetServiceData.getResultUrl(METHOD_GETSYSSETTINGOBJECT, initSysSettingObject());
+        RequestManager
+                .getInstance()
+                .get(resultUrl, new GsonCallback<>(GetSysSettingObjectResp.class, this, resultUrl));
+    }
+
+    /**
+     * 请求操作员
+     * @param getOperatorsReq
+     */
+    private void requestGetOperators(GetOperatorsReq getOperatorsReq)
+    {
+        String operatorUrl = GetServiceData.getResultUrl(METHOD_GETOPERATORS, getOperatorsReq);
+        RequestManager
+                .getInstance()
+                .get(operatorUrl, new GsonCallback<>(GetOperatorsResp.class, this, operatorUrl));
+    }
+
+    /**
+     * 请求权限
+     * @param getRightsByGroupIDReq
+     */
+    private void requestGetRightsByGroupID(GetRightsByGroupIDReq getRightsByGroupIDReq)
+    {
+        String url = GetServiceData.getResultUrl(METHOD_GETRIGHTSBYGROUPID, getRightsByGroupIDReq);
+        RequestManager
+                .getInstance()
+                .get(url, new GsonCallback<>(GetRightsByGroupIDResp.class, this, url));
+    }
+
+    @NonNull
+    private LoginUserReq initLoginUserReq()
     {
         LoginUserReq loginUserReq = new LoginUserReq();
         loginUserReq.setPassword(md5Password);
@@ -682,100 +665,104 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
             tempUserNO = getOperatorsWithoutLoginResp.getData().get(indexUserName).getUserNO();
         }
         loginUserReq.setUserNo(tempUserNO);
-        loginUserResp = GetServiceData.getInstance().LoginUser(loginUserReq);
-
-        if (loginUserResp != null && loginUserResp.getData() != null)
-        {
-            if (Integer.parseInt(loginUserResp.getRcode()) != 200)
-            {
-                showMsgToScreen(loginUserResp.getMsg());
-                return false;
-            }
-            else
-            {
-                Model.token = loginUserResp.getData().getToken(); // 登录成功
-                return true;
-            }
-        }
-        else
-        {
-            showMsgToScreen("登录服务器失败");
-            return false;
-        }
+        return loginUserReq;
     }
 
 
-    /**
-     * 4 获取系统配置信息
-     * data:{"rcode":"200","msg":"OK","data":{"iEnableNetVideo":"1","bVideo4":"0"
-     * ,"iPersonVideo":"0"
-     * ,"iIDCapture":"0"
-     * ,"sImageSavePath":"D:"
-     * ,"bImageAutoDel":"0"
-     * ,"iImageSaveDays":"120","iImageAutoDelTime":"1","iFreeCar":"0","bSetTempMoney":"1","bModiTempType_VoiceSF":"1","bSFCancel":"1"
-     * ,"bSetTempCardType":"1","iLoadTimeInterval":"20","bDisplayTime":"0","iShowGateState":"1","iExitOnlineByPwd":"0","bSoftOpenNoPlate":"0"
-     * ,"bCheDui":"0","bExceptionHandle":"0","bShowBoxCardNum":"0"
-     * ,"bAutoPrePlate":"0","bCheckPortFirst":"0","iFullLight":"0","iVideoShiftTime":"5","bIDSoftOpen":"1","iInOutLimitSeconds":"0"
-     * ,"iRealTimeDownLoad":"0","bIdSfCancel":"0","iICCardDownLoad":"0","bIdReReadHandle":"0","bIdPlateDownLoad":"1","iIDOneInOneOut":"0"
-     * ,"iIDComfirmOpen":"0","bCtrlShowPlate":"1","bCtrlShowStayTime":"1","bCtrlShowCW":"0","bCtrlShowInfo":"0","bCtrlShowRemainPos":"0"
-     * ,"iCtrlVoiceLedVersion":"1","iCtrlVoiceMode":"0","iIDNoticeDay":"10","iBillPrint":"0","bBillPrintAuto":"0","iPrintFontSize":"8"
-     * ,"iCarPosCom":"0","iCarPosLedLen":"0","iSFLedCom":"0","iSFLedType":"0","bRemainPosLedShowInfo":"0","bRemainPosLedShowPlate":"0"
-     * ,"bReLoginPrint":"0","bBarCodePrint":"0","bCtrlSetHasPwd":"1","bQueryName":"0","iWorkstationNo":"1","iParkingNo":"1","strAreaDefault":"京"
-     * ,"bFreeCardNoInPlace":"0","bDetailLog":"0","bSumMoneyHide":"0","iParkTotalSpaces":"999","iTempCarPlaceNum":"0","iMonthCarPlaceNum":"0"
-     * ,"iMoneyCarPlaceNum":"0","iOnlyShowThisRemainPos":"0","bOneKeyShortCut":"0","bTempDown":"1","bAutoMinutes":"0","LocalProvince":"粤"
-     * ,"bAutoUpdateJiHao":"0","iSFLed":"1","iAutoSetMinutes":"5","bAutoPlateEn":"1","iAutoPlateDBJD":"2","iInAutoOpenModel":"1","iOutAutoOpenModel":"1","iInMothOpenModel":"1"
-     * ,"iOutMothOpenModel":"1","bCPHPhoto":"1","iAutoDeleteImg":"0","iSameCphDelay":"0","iCarPosLed":"1","iAutoKZ":"1","iAutoColorSet":"0","iAuto0Set":"0","bNoCPHAutoKZ":"0"
-     * ,"bTempCanNotInSmall":"0","bOutSF":"0","iCarPosLedJH":"0","iCphDelay":"","iTempFree":"0","sID1In1OutCardType":"","iDelayed":"15","iPromptDelayed":"5","OCar":"1"
-     * ,"bSpecilCPH":"0","bCphAllEn":"0","bCphAllSame":"0","bCarYellowTmp":"0","strCarYellowTmpType":"TmpB","sMonthOutChargeType":"","bOnlyLocation":"0","bFullComfirmOpen":"0"
-     * ,"bAutoCPHDZ":"0","bCentralCharge":"0","bOutCharge":"0","bMorePaingCar":"0","bMorePaingType":"0","bOnlinePayEnabled":"0","strWXAppID":"","strWXMCHID":"","strWXKEY":""
-     * ,"strZFBAppID":"","strZFBPID":"","iChargeType":"0","iXsdNum":"1","iXsd":"0","iZGXE":"0","iZGType":"0","iZGXEType":"0","iDiscount":"1","iYKOverTimeCharge":"0"
-     * "iMothOverDay":"5","bForbidSamePosition":"0","bAppEnable":"0","bMonthRule":"0"}}
-     */
-    private GetSysSettingObjectResp requestSysSettingObject()
+    @NonNull
+    private GetSysSettingObjectReq initSysSettingObject()
     {
         GetSysSettingObjectReq getSysSettingObjectReq = new GetSysSettingObjectReq();
         getSysSettingObjectReq.setToken(Model.token);
         getSysSettingObjectReq.setStationID(getStationIdFromList(indexStationId));
-        GetSysSettingObjectResp getSysSettingObjectResp = GetServiceData.getInstance().GetSysSettingObject(getSysSettingObjectReq);
-        if (getSysSettingObjectResp != null)
+        return getSysSettingObjectReq;
+    }
+
+
+    @Override
+    public void success(String url, Object o)
+    {
+        L.e("success: " + url + "<===>" + o.toString());
+        if (o instanceof GetOperatorsWithoutLoginResp)
         {
-            GlobalParams.setGetSysSettingObjectResp(getSysSettingObjectResp);
-            L.i("getSysSettingObjectResp", getSysSettingObjectResp.toString());
-            return getSysSettingObjectResp;
+            getOperatorsWithoutLoginResp = (GetOperatorsWithoutLoginResp) o;
+            updateUserName();
         }
-        return null;
+        else if (o instanceof GetStationSetWithoutLoginResp)
+        {
+            getStationSetWithoutLoginResp = (GetStationSetWithoutLoginResp) o;
+            updateStationName();
+        }
+        else if (o instanceof LoginUserResp)
+        {
+            loginUserResp = (LoginUserResp) o;
+            if (loginUserResp != null && loginUserResp.getData() != null)
+            {
+                if (Integer.parseInt(loginUserResp.getRcode()) != 200)
+                {
+                    T.showShort(LoginActivity.this, loginUserResp.getMsg());
+                }
+                else
+                {
+                    Model.token = loginUserResp.getData().getToken(); // 登录成功
+                }
+            }
+            else
+            {
+                T.showShort(LoginActivity.this, "登录服务器失败");
+            }
+            handlerLoginRequest();
+        }
+        else if (o instanceof GetSysSettingObjectResp)
+        {
+            GetSysSettingObjectResp resp = (GetSysSettingObjectResp) o;
+            Model.setSysSettingToPubVar(resp.getData());
+        }
+        else if (o instanceof GetServerTimeResp)
+        {
+            serverTime = (GetServerTimeResp) o;
+        }
+        else if (o instanceof GetOperatorsResp)
+        {
+            getOperatorsResp = (GetOperatorsResp) o;
+            handlerGetOperators();
+        }
+        else if (o instanceof GetRightsByGroupIDResp)
+        {
+            getRightsByGroupIDResp = (GetRightsByGroupIDResp) o;
+            if (getRightsByGroupIDResp != null && getRightsByGroupIDResp.getData() != null)
+            {
+                Model.lstRights = getRightsByGroupIDResp.getData();
+            }
+
+            if (Model.lstRights == null || Model.lstRights.size() <= 0)
+            {
+                Toast.makeText(LoginActivity.this, "无进入在线监控权限", Toast.LENGTH_SHORT).show();
+            }
+            else
+            {
+                // 获取是否有在线监控的权限
+                if (isHaveRightsByName("在线监控", "CmdView"))
+                {
+                    Intent intent = new Intent(LoginActivity.this, ParkingMonitoringActivity.class);
+                    startActivity(intent);
+                }
+                else
+                {
+                    Toast.makeText(LoginActivity.this, "无进入在线监控权限", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
     }
 
-    /**
-     * 5 获取系统时间
-     */
-    private void requestSysTime()
+    @Override
+    public void error(String url, String string)
     {
-        GetServerTimeReq getServerTimeReq = new GetServerTimeReq();
-        getServerTimeReq.setToken(Model.token);
-        serverTime = GetServiceData.getInstance().getServerTime(getServerTimeReq);
-    }
-
-    /**
-     * 6 获取操作员信息
-     */
-    private void requestGetOperators()
-    {
-        GetOperatorsReq getOperatorsReq = new GetOperatorsReq();
-        getOperatorsReq.setToken(Model.token);
-        getOperatorsReq.setJsonSearchParam(JsonSearchParam.getWhenGetOperators(getUserNoFromList(indexUserName)));
-        getOperatorsResp = GetServiceData.getInstance().GetOperators(getOperatorsReq);
-    }
-
-
-    /**
-     * 7 获取权限消息
-     */
-    private void requestGetRightByID()
-    {
-        GetRightsByGroupIDReq getRightsByGroupIDReq = new GetRightsByGroupIDReq();
-        getRightsByGroupIDReq.setToken(Model.token);
-        getRightsByGroupIDReq.setGroupID(Model.sGroupNo);
-        getRightsByGroupIDResp = GetServiceData.getInstance().GetRightsByGroupID(getRightsByGroupIDReq);
+        L.i("error: " + url + "<===>" + string);
+        T.showShort(LoginActivity.this, "连接服务器失败");
+//        if (string.contains(METHOD_LOGINUSER))
+//        {
+//            T.showShort(LoginActivity.this, "登录服务器失败");
+//        }
     }
 }

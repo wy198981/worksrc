@@ -32,7 +32,7 @@ public class ParkingTempGob_bigActivity extends AppCompatActivity implements Vie
     private TextView tvInDateTime;
     private TextView tvOutTime;
     private TextView tvTimeDuration;
-    private EditText etStopMoney;
+    private TextView etStopMoney;
     private TextView needPayMoney;
     private NiceSpinner nsDiscountSpace;
     private NiceSpinner nSpFreeReason;
@@ -84,7 +84,7 @@ public class ParkingTempGob_bigActivity extends AppCompatActivity implements Vie
         tvInDateTime = (TextView) findViewById(R.id.tvInDateTime);
         tvOutTime = (TextView) findViewById(R.id.tvOutTime);
         tvTimeDuration = (TextView) findViewById(R.id.tvTimeDuration);
-        etStopMoney = (EditText) findViewById(R.id.etStopCarMoney);
+        etStopMoney = (TextView) findViewById(R.id.tvStopCarMoney);
         needPayMoney = (TextView) findViewById(R.id.needPayMoney);
         nsDiscountSpace = (NiceSpinner) findViewById(R.id.nsDiscountSpace);
         nSpFreeReason = (NiceSpinner) findViewById(R.id.nSpFreeReason);

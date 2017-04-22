@@ -6,7 +6,6 @@ import android.graphics.Bitmap;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.Display;
 import android.view.View;
 import android.view.Window;
@@ -20,25 +19,24 @@ import android.widget.Toast;
 
 import com.example.administrator.mydistributedparkingos.R;
 import com.example.administrator.myparkingos.constant.CR;
+import com.example.administrator.myparkingos.model.beans.ModelNode;
+import com.example.administrator.myparkingos.model.beans.Model;
 import com.example.administrator.myparkingos.model.requestInfo.SetCarInWithoutCPHReq;
 import com.example.administrator.myparkingos.myUserControlLibrary.niceSpinner.NiceSpinner;
-import com.example.administrator.myparkingos.myUserControlLibrary.radioBtn.FlowRadioGroup;
 import com.example.administrator.myparkingos.util.BitmapUtils;
-import com.example.administrator.myparkingos.util.CommUtils;
+import com.example.administrator.myparkingos.util.ConcurrentQueueHelper;
 import com.example.administrator.myparkingos.util.L;
-import com.example.administrator.myparkingos.util.RegexUtil;
+import com.example.administrator.myparkingos.util.SDCardUtils;
 import com.example.administrator.myparkingos.util.T;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Created by Administrator on 2017-03-10.
  */
-public class ParkingInNoPlateView implements View.OnClickListener
+public class ParkingInNoPlateView implements View.OnClickListener, NiceSpinner.SpinnerListener
 {
     private Dialog dialog;
     private NiceSpinner spinnerColor;
@@ -55,11 +53,26 @@ public class ParkingInNoPlateView implements View.OnClickListener
     private ArrayAdapter brandAdapter;
     private ArrayList<String> roadList;
     private ArrayAdapter roadAdapter;
+    private int index;
+    private int ctrlNumber;
 
-    public ParkingInNoPlateView(Activity activity)
+    private String[] stringArray;
+    private String[] tempArray;
+
+    public ParkingInNoPlateView(Activity activity, int index, int ctrlNumber)
     {
-        mActivity = activity;
-        dialog = new Dialog(activity); // @android:style/Theme.Dialog
+        this.mActivity = activity;
+        this.index = index;
+        this.ctrlNumber = ctrlNumber;
+        setWindowAttribute(activity);
+
+
+        initView();
+    }
+
+    private void setWindowAttribute(Activity activity)
+    {
+        dialog = new Dialog(activity);
         dialog.setContentView(R.layout.parkingin_noplate);
         dialog.setCanceledOnTouchOutside(true);
 
@@ -71,15 +84,20 @@ public class ParkingInNoPlateView implements View.OnClickListener
         p.width = (int) (d.getWidth() * 1 / 3); // 宽度设置为屏幕的0.65
         window.setAttributes(p);
 
-        initView();
         dialog.getWindow().setBackgroundDrawableResource(R.drawable.parkdowncard_background);
         dialog.setTitle(activity.getResources().getString(R.string.parkMontior_unlicensedVehicleAdmission));
+
+        stringArray = mActivity.getResources().getStringArray(R.array.noPlateColor);
+        tempArray = mActivity.getResources().getStringArray(R.array.noPlateBrand);
     }
 
     private void initView()
     {
         spinnerColor = (NiceSpinner) dialog.findViewById(R.id.spinnerColor);
+        spinnerColor.setSpinnerListener(this);
         spinnerCarBrand = (NiceSpinner) dialog.findViewById(R.id.spinnerCarBrand);
+        spinnerCarBrand.setSpinnerListener(this);
+
         btnAdd = (Button) dialog.findViewById(R.id.btnAdd);
         spinnerProvince = (Spinner) dialog.findViewById(R.id.spinnerProvince);
         etInputCarNo = (EditText) dialog.findViewById(R.id.etInputCarNo);
@@ -90,15 +108,12 @@ public class ParkingInNoPlateView implements View.OnClickListener
         btnAdd.setOnClickListener(this);
         btnCancel.setOnClickListener(this);
 
-        String[] stringArray = mActivity.getResources().getStringArray(R.array.noPlateColor);
-        spinnerColor.refreshData(Arrays.asList(stringArray), 0);
-
         provinceAdapter = new ArrayAdapter(mActivity.getApplicationContext(), R.layout.blacklist_spinner_province
                 , mActivity.getResources().getStringArray(R.array.provinceArray));
         spinnerProvince.setAdapter(provinceAdapter);
 
-        String[] tempArray = mActivity.getResources().getStringArray(R.array.noPlateBrand);
-        spinnerCarBrand.refreshData(Arrays.asList(tempArray), 0);
+        spinnerColor.refreshData(Arrays.asList(stringArray), 0, true);
+        spinnerCarBrand.refreshData(Arrays.asList(tempArray), 0, true);
 
         spinnerRoadName.refreshData(roadList, 0);
 
@@ -180,20 +195,44 @@ public class ParkingInNoPlateView implements View.OnClickListener
         imagePicture.setImageBitmap(bitmap);
     }
 
-    protected void onBtnOk(SetCarInWithoutCPHReq carInWithoutCPHReq, String roadName)
+    private void sendModeToQueue(ModelNode.E_CarInOutType type, String cph, Object data, int index)
     {
+        ModelNode modelNode = new ModelNode();
+        modelNode.data = data;
+        modelNode.type = type;
+        modelNode.setsDzScan("");
+        modelNode.setiDzIndex(index);
 
+        String fileName = SDCardUtils.getSDCardPath() + "picture.jpg";
+        L.i("获取到的fileName:" + fileName);
+
+        if (mListener != null)
+        {
+            mListener.saveImageCallBack(fileName, index);
+        }
+        modelNode.setStrFileJpg(fileName);
+        modelNode.setStrCPH(cph);
+        ConcurrentQueueHelper.getInstance().put(modelNode);
     }
 
-    protected void onBtnCancel()
+    protected void onBtnOk(SetCarInWithoutCPHReq carInWithoutCPHReq, String roadName)
     {
+        carInWithoutCPHReq.setToken(Model.token);
+        carInWithoutCPHReq.setStationId(Model.stationID);
+        carInWithoutCPHReq.setCtrlNumber(ctrlNumber);
 
+        String CPH = carInWithoutCPHReq.getCPH();
+        sendModeToQueue(ModelNode.E_CarInOutType.CAR_IN_TYPE_auto_noPlate, CPH, carInWithoutCPHReq, index);
+        dismiss();
     }
 
     public void show()
     {
         if (dialog != null)
         {
+            etInputCarNo.setText("");
+            spinnerColor.refreshData(Arrays.asList(stringArray), 0, true);
+            spinnerCarBrand.refreshData(Arrays.asList(tempArray), 0, true);
             prepareLoadData();
             dialog.show();
         }
@@ -204,7 +243,6 @@ public class ParkingInNoPlateView implements View.OnClickListener
      */
     public void prepareLoadData()
     {
-
     }
 
     public void dismiss()
@@ -228,7 +266,8 @@ public class ParkingInNoPlateView implements View.OnClickListener
                 L.i("cph:" + cph);
                 if (TextUtils.isEmpty(cph))
                 {
-                    L.i("车牌为空");
+                    T.showShort(mActivity, "车牌号码为空不符号要求");
+                    return;
                 }
                 else
                 {
@@ -241,7 +280,6 @@ public class ParkingInNoPlateView implements View.OnClickListener
                     }
                 }
                 SetCarInWithoutCPHReq setCarInWithoutCPHReq = new SetCarInWithoutCPHReq();
-
                 setCarInWithoutCPHReq.setCarColor(spinnerColor.getCurrentText());
                 setCarInWithoutCPHReq.setCarBrand(spinnerCarBrand.getCurrentText());
                 if (resultCPH != null)
@@ -252,7 +290,7 @@ public class ParkingInNoPlateView implements View.OnClickListener
             }
             case R.id.btnCancel:
             {
-                onBtnCancel();
+                dismiss();
                 break;
             }
             default:
@@ -264,7 +302,24 @@ public class ParkingInNoPlateView implements View.OnClickListener
 
     public void cleanCarNo()
     {
-        etInputCarNo.setText("");
+
     }
 
+    private NoPlateListener mListener;
+
+    public void setListener(NoPlateListener listener)
+    {
+        this.mListener = listener;
+    }
+
+    @Override
+    public void OnSpinnerItemClick(int pos)
+    {
+
+    }
+
+    public interface NoPlateListener
+    {
+        void saveImageCallBack(String fileName, int index);
+    }
 }

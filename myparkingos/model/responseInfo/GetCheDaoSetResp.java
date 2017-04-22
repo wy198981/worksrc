@@ -19,7 +19,7 @@ public class GetCheDaoSetResp
     @Override
     public String toString()
     {
-        final StringBuffer sb = new StringBuffer("GetOperatorsWithoutLoginResp{");
+        final StringBuffer sb = new StringBuffer("GetCheDaoSetResp{");
         sb.append("rcode='").append(rcode).append('\'');
         sb.append(", msg='").append(msg).append('\'');
         sb.append(", PageIndex=").append(PageIndex);
@@ -99,7 +99,7 @@ public class GetCheDaoSetResp
         private int CtrlNumber;                //   机号
         private int OpenID;                    //   开闸机号
         private int OpenType;                  //   开闸方式
-        private int PersonVideo;               //   人相视频
+        private int PersonVideo;                //   人像相机ID（副相机）
         private int BigSmall;                  //   大小车场。0为大车场，1为小车场。
         private int CheckPortID;               //   检测口
         private int OnLine;                    //   是否在线
@@ -108,7 +108,7 @@ public class GetCheDaoSetResp
         private String SubJH;                  //   子机号
         private int XieYi;                     //   协议。0为485，1为TCP/IP
         private String IP;                     //   IP地址
-        private String CameraIP;               //   相机IP
+        private String CameraIP;               //   相机ID
         private boolean OfflineSendSignal;     //   脱机使用时是否发送车辆进出场信号
         private boolean OfflineReciveSignal;   //   脱机使用时是否接收车辆进出场信号
         private int Temp1;                     //   备用

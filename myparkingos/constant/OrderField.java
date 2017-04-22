@@ -1,7 +1,5 @@
 package com.example.administrator.myparkingos.constant;
 
-import com.example.administrator.myparkingos.model.RequestByURL;
-
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,6 +10,11 @@ import java.util.Set;
  */
 public class OrderField
 {
+    /**
+     * 获取查询的升序降序字段
+     * @param cphOrder
+     * @return
+     */
     public static String getWhenGetCardIssue(String cphOrder)
     {
         HashMap<String, String> hashMap = new HashMap<>();
@@ -84,5 +87,15 @@ public class OrderField
         }
 //        return order;
         return URLEncoder.encode(order); //where条件都没有经过编码转换
+    }
+
+
+    public static String getWhenGetReasonNOPlate(String order)
+    {
+        HashMap<String, String> hashMap = new HashMap<>();
+        hashMap.put("ItemID", order);
+
+        String orderField = getOrderField(hashMap);
+        return orderField;
     }
 }

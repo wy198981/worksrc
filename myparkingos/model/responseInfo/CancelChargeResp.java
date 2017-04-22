@@ -18,7 +18,7 @@ public class CancelChargeResp
      * 40040            找不到入场记录
      */
 
-    private int data; // N     受影响的行数
+    private int data; // N    出场记录被转到入场表后对应的入场记录的ID
 
     @Override
     public String toString()

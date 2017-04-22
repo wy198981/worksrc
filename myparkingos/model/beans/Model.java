@@ -1,14 +1,17 @@
 package com.example.administrator.myparkingos.model.beans;
 
+
+import com.example.administrator.myparkingos.LoginActivity;
 import com.example.administrator.myparkingos.constant.JsonSearchParam;
 import com.example.administrator.myparkingos.constant.OrderField;
 import com.example.administrator.myparkingos.model.GetServiceData;
-import com.example.administrator.myparkingos.model.beans.gson.EntityRights;
 import com.example.administrator.myparkingos.model.requestInfo.GetCheDaoSetReq;
 import com.example.administrator.myparkingos.model.responseInfo.GetCheDaoSetResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetRightsByGroupIDResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetSysSettingObjectResp;
 import com.example.administrator.myparkingos.util.L;
+import com.example.administrator.myparkingos.volleyUtil.callback.GsonCallback;
+import com.jude.http.RequestManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +35,7 @@ public class Model
     /// <summary>
     /// 权限分配List
     /// </summary>
-    public static List<GetRightsByGroupIDResp.DataBean> lstRights = new ArrayList<GetRightsByGroupIDResp.DataBean>();
+    public static List<GetRightsByGroupIDResp.DataBean> lstRights = new ArrayList<>();
 
     /// <summary>
     /// token(用于访问服务器的唯一凭证)
@@ -94,15 +97,6 @@ public class Model
 
     }
 
-    /// <summary>
-    /// 默认省份(可以为空)
-    /// </summary>
-    public static String LocalProvince = "粤";
-
-    /// <summary>
-    /// 保存详细日志（开闸窗口弹出、按开闸按钮、开闸记录等）
-    /// </summary>
-    public static int iDetailLog = 0;
 
     /// <summary>
     /// 启用掌上停车
@@ -435,6 +429,116 @@ public class Model
     public static int iBarCodePrint = 0;
 
     /// <summary>
+    /// 控制设置凭密码
+    /// </summary>
+    public static int iCtrlSetHasPwd = 0;
+
+    /// <summary>
+    /// 按人员姓名编号查询出入场记录
+    /// </summary>
+    public static int iQueryName = 0;
+
+    /// <summary>
+    /// 车牌默认省区
+    /// </summary>
+    public static String strAreaDefault = "粤";
+
+    /// <summary>
+    /// 免费卡不计入车位数
+    /// </summary>
+    public static int iFreeCardNoInPlace = 0;
+
+    /// <summary>
+    /// 保存详细日志（开闸窗口弹出、按开闸按钮、开闸记录等）
+    /// </summary>
+    public static int iDetailLog = 0;
+
+    /// <summary>
+    /// 在线监控累计金额隐藏
+    /// </summary>
+    public static int iSumMoneyHide = 0;
+
+    /// <summary>
+    /// 总车位数（999）
+    /// </summary>
+    public static int iParkTotalSpaces = 999;
+
+    /// <summary>
+    /// 临时车车位
+    /// </summary>
+    public static int iTempCarPlaceNum = 0;
+
+    /// <summary>
+    /// 固定车车位
+    /// </summary>
+    public static int iMonthCarPlaceNum = 0;
+
+    /// <summary>
+    /// 储值车车位
+    /// </summary>
+    public static int iMoneyCarPlaceNum = 0;
+
+    /// <summary>
+    /// 仅显示临时固定储值剩余车位(1临时，2固定，3储值)
+    /// </summary>
+    public static int iOnlyShowThisRemainPos = 0;
+    public static boolean bTempCarPlace = false;
+    public static boolean bMonthCarPlace = false;
+    public static boolean bMoneyCarPlace = false;
+
+    public static int iOnlinePayEnabled = 0;
+
+    public static String strWXAppID = "";//绑定支付的APPID（必须配置） 2016-07-04
+
+    public static String strWXMCHID = "";//商户号（必须配置） 2016-07-04
+
+    public static String strWXKEY = "";//商户支付密钥，参考开户邮件设置（必须配置） 2016-07-04
+
+    public static String strZFBAppID = "";//支付宝APPID 2016-07-04
+
+    public static String strZFBPID = "";//支付宝PID 2016-07-04
+
+    /// <summary>
+    /// 是否启用一键式快捷键
+    /// </summary>
+    public static int iOneKeyShortCut = 0;
+
+    /// <summary>
+    /// 临时车不下载到出口
+    /// </summary>
+    public static int iTempDown = 0;
+
+    /// <summary>
+    /// 是否启用自动关闭弹出窗体
+    /// </summary>
+    public static int iAutoMinutes = 0;
+
+    /// <summary>
+    /// 默认省份(可以为空)
+    /// </summary>
+    public static String LocalProvince = "粤";
+
+
+    /// <summary>
+    /// 是否自动修改机号
+    /// </summary>
+    public static int iAutoUpdateJiHao = 1;
+
+    /// <summary>
+    /// 收费显屏(TDisScreen)
+    /// </summary>
+    public static int iSFLed = 0;
+
+    /// <summary>
+    /// 启用自动关闭弹出窗体的时间
+    /// </summary>
+    public static int iAutoSetMinutes = 1;
+
+    /// <summary>
+    /// 提示信息框延时
+    /// </summary>
+    public static int iPromptDelayed = 10;
+    /// <summary>
     /// 车牌识别功能启用
     /// </summary>
     public static int iAutoPlateEn = 0;
@@ -556,9 +660,26 @@ public class Model
     /// </summary>
     public static int iCtrlShowPlate = 1;
 
+
+    public static boolean bPaiChe = false; //?
+
+    public static String Language = "Chinese";
+
+    public static boolean bSfDec = false;// 需要验证的
+
+    /// <summary>
+    /// 证件抓拍口(g_sZjCatch)
+    /// </summary>
+    public static String sIDCaptureCard = "0";
     /// <summary>
     /// 车道设置结构
     /// </summary>
+
+    /// <summary>
+    /// 8类临时卡
+    /// </summary>
+    public static boolean bTemp8 = true;
+
     public static class StructChannel
     {
         public int iInOut;  //   入出类型。0为入，1为出
@@ -609,7 +730,6 @@ public class Model
     public static void setSysSettingToPubVar(GetSysSettingObjectResp.DataBean dataBean)
     {
         if (dataBean == null) return;
-
         Map map = GetServiceData.getValue(dataBean);
 
         Model.bAppEnable = convertValueForBoolean(map, "bAppEnable");
@@ -621,7 +741,8 @@ public class Model
         Model.iEnableNetVideo = convertValueForInt(map, "iEnableNetVideo");
         Model.iVideo4 = convertValueForInt(map, "bVideo4");
         Model.iPersonVideo = convertValueForInt(map, "iPersonVideo");
-        Model.iIDCapture = convertValueForInt(map, "iIDCapture");
+        Model.iIDCapture = convertValueForInt(map, "iIDCapture"); // 1
+
         Model.sImageSavePath = convertValueForString(map, "sImageSavePath") == null ? "" : convertValueForString(map, "sImageSavePath");
 
         Model.iImageAutoDel = convertValueForInt(map, "bImageAutoDel");
@@ -634,17 +755,18 @@ public class Model
         Model.iDiscount = convertValueForInt(map, "iDiscount");
         Model.iXsd = convertValueForInt(map, "iXsd");
         Model.iFreeCar = convertValueForInt(map, "iFreeCar");
-        Model.iSetTempMoney = convertValueForInt(map, "bSetTempMoney");
+        Model.iSetTempMoney = convertValueForInt(map, "bSetTempMoney");//1
         Model.iYKOverTimeCharge = convertValueForInt(map, "iYKOverTimeCharge");
         Model.iZGXE = convertValueForInt(map, "iZGXE");
         Model.iModiTempType_VoiceSF = convertValueForInt(map, "bModiTempType_VoiceSF");
-        Model.iSFCancel = convertValueForInt(map, "bSFCancel");
+        Model.iSFCancel = convertValueForInt(map, "bSFCancel"); // 1
         Model.iMonthRule = convertValueForInt(map, "bMonthRule");
         Model.iZGType = convertValueForInt(map, "iZGType");
         Model.iZGXEType = convertValueForInt(map, "iZGXEType");
         Model.iMothOverDay = convertValueForInt(map, "iMothOverDay");
-        Model.iSetTempCardType = convertValueForInt(map, "bSetTempCardType");
-        Model.iTempFree = convertValueForInt(map, "iTempFree");
+        Model.iSetTempCardType = convertValueForInt(map, "bSetTempCardType"); // 1
+        Model.iTempFree = convertValueForInt(map, "iTempFree");//1
+
         Model.bCarYellowTmp = convertValueForBoolean(map, "bCarYellowTmp");
         Model.strCarYellowTmpType = convertValueForString(map, "strCarYellowTmpType") == null ? "TmpB" : convertValueForString(map, "strCarYellowTmpType");
         Model.sMonthOutChargeType = convertValueForString(map, "sMonthOutChargeType") == null ? "TmpA" : convertValueForString(map, "sMonthOutChargeType");
@@ -708,23 +830,63 @@ public class Model
         Model.iBarCodePrint = convertValueForInt(map, "bBarCodePrint");
         //Model.IsCPHAuto = ckbIsCPHAuto.Checked ? 1 : 0;  在线识别月卡不开闸
 
-//        其它设置
-        Model.iBillPrint = convertValueForInt(map, "iBillPrint");
-        Model.iBillPrintAuto = convertValueForInt(map, "bBillPrintAuto");
-        Model.iPrintFontSize = convertValueForInt(map, "iPrintFontSize");
-        //Model.iCarPosLed = carShow.Checked ? 1 : 0; //出入场图片不加水印
-        Model.iCarPosCom = convertValueForInt(map, "iCarPosCom");
-        //Model.iCarPosLedJH = Convert.ToInt32(Combo5cwjh.Text);   //combo5cwjh 车牌识别
-        Model.iCarPosLedLen = convertValueForInt(map, "iCarPosLedLen");
-        //Model.iSFLed = ClientS.Checked ? 1 : 0;   //脱机车牌（车牌识别）
-        Model.iSFLedCom = convertValueForInt(map, "iSFLedCom");
-        Model.iSFLedType = convertValueForInt(map, "iSFLedType");
-        Model.iRemainPosLedShowInfo = convertValueForInt(map, "bRemainPosLedShowInfo");
-        Model.iRemainPosLedShowPlate = convertValueForInt(map, "bRemainPosLedShowPlate");
-        Model.iReLoginPrint = convertValueForInt(map, "bReLoginPrint");
-        Model.bOnlyLocation = convertValueForBoolean(map, "bOnlyLocation");
-        Model.iBarCodePrint = convertValueForInt(map, "bBarCodePrint");
-        //Model.IsCPHAuto = ckbIsCPHAuto.Checked ? 1 : 0;  在线识别月卡不开闸
+        Model.iCtrlSetHasPwd = convertValueForInt(map, "bCtrlSetHasPwd");
+        Model.iQueryName = convertValueForInt(map, "bQueryName");
+        //Model.iWorkstationNo = Convert.ToInt32(dic.ContainsKey("bAppEnable") ? (null == dic["iWorkstationNo"] || dic["iWorkstationNo"].Trim().Length <= 0 ? "0" : dic["iWorkstationNo"]):"0");  //工作站编号
+        //Model.iParkingNo = Convert.ToInt32(dic.ContainsKey("bAppEnable") ? (null == dic["iParkingNo"] || dic["iParkingNo"].Trim().Length <= 0 ? "0" : dic["iParkingNo"]):"0");
+        ;
+        Model.strAreaDefault = convertValueForString(map, "strAreaDefault") == null ? "粤" : convertValueForString(map, "strAreaDefault");
+
+        Model.iFreeCardNoInPlace = convertValueForInt(map, "bFreeCardNoInPlace");
+        Model.iDetailLog = convertValueForInt(map, "bDetailLog");
+        Model.iSumMoneyHide = convertValueForInt(map, "bSumMoneyHide");
+        Model.iParkTotalSpaces = convertValueForInt(map, "iParkTotalSpaces");
+        Model.iTempCarPlaceNum = convertValueForInt(map, "iTempCarPlaceNum");
+        Model.iMonthCarPlaceNum = convertValueForInt(map, "iMonthCarPlaceNum");
+        Model.iMoneyCarPlaceNum = convertValueForInt(map, "iMoneyCarPlaceNum");
+        Model.iOnlyShowThisRemainPos = convertValueForInt(map, "iOnlyShowThisRemainPos");
+
+        Model.iOnlinePayEnabled = convertValueForInt(map, "bOnlinePayEnabled");
+        Model.strWXAppID = convertValueForString(map, "strWXAppID") == null ? "" : convertValueForString(map, "strWXAppID");
+        Model.strWXMCHID = convertValueForString(map, "strWXMCHID") == null ? "" : convertValueForString(map, "strWXMCHID");
+        Model.strWXKEY = convertValueForString(map, "strWXKEY") == null ? "" : convertValueForString(map, "strWXKEY");
+        Model.strZFBAppID = convertValueForString(map, "strZFBAppID") == null ? "" : convertValueForString(map, "strZFBAppID");
+        Model.strZFBPID = convertValueForString(map, "strZFBPID") == null ? "" : convertValueForString(map, "strZFBPID");
+
+        if (Model.iOnlyShowThisRemainPos == 1)
+        {
+            Model.bTempCarPlace = true;
+            Model.bMonthCarPlace = false;
+            Model.bMoneyCarPlace = false;
+        }
+        else if (Model.iOnlyShowThisRemainPos == 2)
+        {
+            Model.bTempCarPlace = false;
+            Model.bMonthCarPlace = true;
+            Model.bMoneyCarPlace = false;
+        }
+        else if (Model.iOnlyShowThisRemainPos == 3)
+        {
+            Model.bTempCarPlace = false;
+            Model.bMonthCarPlace = false;
+            Model.bMoneyCarPlace = true;
+        }
+        else
+        {
+            Model.bTempCarPlace = false;
+            Model.bMonthCarPlace = false;
+            Model.bMoneyCarPlace = false;
+        }
+
+        Model.iOneKeyShortCut = convertValueForInt(map, "bOneKeyShortCut");
+        Model.iTempDown = convertValueForInt(map, "bTempDown");
+        Model.iAutoMinutes = convertValueForInt(map, "bAutoMinutes");
+        Model.LocalProvince = convertValueForString(map, "LocalProvince") == null ? "粤" : convertValueForString(map, "LocalProvince");
+
+        Model.iAutoUpdateJiHao = convertValueForInt(map, "bAutoUpdateJiHao");
+        Model.iSFLed = convertValueForInt(map, "iSFLed");
+        Model.iAutoSetMinutes = convertValueForInt(map, "iAutoSetMinutes");
+        Model.iPromptDelayed = convertValueForInt(map, "iPromptDelayed");
 //        车牌参数设置
         Model.iAutoPlateEn = convertValueForInt(map, "bAutoPlateEn");
         Model.iAutoPlateDBJD = convertValueForInt(map, "iAutoPlateDBJD");
@@ -735,10 +897,8 @@ public class Model
         Model.iCPHPhoto = convertValueForInt(map, "bCPHPhoto");
         Model.iAutoDeleteImg = convertValueForInt(map, "iAutoDeleteImg");
 
-
         Model.iSameCphDelay = convertValueForString(map, "iSameCphDelay") == null ? "0" : (convertValueForString(map, "iSameCphDelay").trim().length() <= 0 ? "0" : convertValueForString(map, "iSameCphDelay"));
         Model.iCarPosLed = convertValueForInt(map, "iCarPosLed") == 0 ? 1 : convertValueForInt(map, "iCarPosLed");
-
 
         Model.iAutoKZ = convertValueForInt(map, "iAutoKZ");
         Model.iAutoColorSet = convertValueForInt(map, "iAutoColorSet");
@@ -754,36 +914,61 @@ public class Model
 
         Model.iCphDelay = convertValueForString(map, "iCphDelay") == null ? "0" : convertValueForString(map, "iCphDelay");
 
-//        车道设置 --在这里来进行车道的设置，放到车道中即可；
-        List<GetCheDaoSetResp.DataBean> cheDaoSet = requestGetCheDaoSet();
-        if (cheDaoSet == null) return;
-        Model.iChannelCount = cheDaoSet.size();
+        // 获取车道信息
+        GetCheDaoSetReq req = new GetCheDaoSetReq();
+        req.setToken(Model.token);
+        req.setJsonSearchParam(JsonSearchParam.getWhenGetCheDaoSet(String.valueOf(Model.stationID)));
+        req.setOrderField(OrderField.getWhenGetCheDaoSet("desc", "asc", "asc"));
 
-        for (int i = 0; i < cheDaoSet.size(); i++)
-        {
-            if (Model.Channels[i] == null)
-            {
-                Model.Channels[i] = new StructChannel();
-            }
-            Model.Channels[i].iInOut = cheDaoSet.get(i).getInOut();
-            Model.Channels[i].sInOutName = cheDaoSet.get(i).getInOutName();
-            Model.Channels[i].iCtrlID = cheDaoSet.get(i).getCtrlNumber();
-            Model.Channels[i].iOpenID = cheDaoSet.get(i).getOpenID();
-            Model.Channels[i].iOpenType = cheDaoSet.get(i).getOpenType();
-            //Model.PubVal.Channels[i].sCarVideo = cheDaoSet.get(i).;
-            Model.Channels[i].sCarVideo = cheDaoSet.get(i).getCameraIP();
-            Model.Channels[i].sPersonVideo = String.valueOf(cheDaoSet.get(i).getPersonVideo());
-            Model.Channels[i].iBigSmall = cheDaoSet.get(i).getBigSmall();
-            Model.Channels[i].iCheckPortID = cheDaoSet.get(i).getCheckPortID();
-            Model.Channels[i].iOnLine = cheDaoSet.get(i).getOnLine();
-            Model.Channels[i].iTempOut = cheDaoSet.get(i).getTempOut();
-            Model.Channels[i].iOutCard = cheDaoSet.get(i).getHasOutCard();
-            Model.Channels[i].sIDAddress = cheDaoSet.get(i).getCameraIP();
-            //Model.PubVal.Channels[i].sIDSignal = ;
-            Model.Channels[i].sSubJH = cheDaoSet.get(i).getSubJH();
-            Model.Channels[i].iXieYi = cheDaoSet.get(i).getXieYi();
-            Model.Channels[i].sIP = cheDaoSet.get(i).getIP();
-        }
+        String resultUrl = GetServiceData.getResultUrl(LoginActivity.METHOD_GETCHEDAOSET, req);
+
+        RequestManager
+                .getInstance()
+                .get(resultUrl, new GsonCallback<>(GetCheDaoSetResp.class, new GsonCallback.Listener()
+                {
+                    @Override
+                    public void success(String url, Object o)
+                    {
+                        L.e("success" + url + "<----->" + o.toString());
+                        GetCheDaoSetResp resp = (GetCheDaoSetResp) o;
+                        if (resp == null || resp.getData() == null) return;
+
+                        List<GetCheDaoSetResp.DataBean> cheDaoSet = resp.getData();
+                        Model.iChannelCount = cheDaoSet.size();
+
+                        for (int i = 0; i < cheDaoSet.size(); i++)
+                        {
+                            if (Model.Channels[i] == null)
+                            {
+                                Model.Channels[i] = new StructChannel();
+                            }
+                            Model.Channels[i].iInOut = cheDaoSet.get(i).getInOut();
+                            Model.Channels[i].sInOutName = cheDaoSet.get(i).getInOutName();
+                            Model.Channels[i].iCtrlID = cheDaoSet.get(i).getCtrlNumber();
+                            Model.Channels[i].iOpenID = cheDaoSet.get(i).getOpenID();
+                            Model.Channels[i].iOpenType = cheDaoSet.get(i).getOpenType();
+                            //Model.PubVal.Channels[i].sCarVideo = cheDaoSet.get(i).;
+                            Model.Channels[i].sCarVideo = cheDaoSet.get(i).getCameraIP();
+                            Model.Channels[i].sPersonVideo = String.valueOf(cheDaoSet.get(i).getPersonVideo());
+                            Model.Channels[i].iBigSmall = cheDaoSet.get(i).getBigSmall();
+                            Model.Channels[i].iCheckPortID = cheDaoSet.get(i).getCheckPortID();
+                            Model.Channels[i].iOnLine = cheDaoSet.get(i).getOnLine();
+                            Model.Channels[i].iTempOut = cheDaoSet.get(i).getTempOut();
+                            Model.Channels[i].iOutCard = cheDaoSet.get(i).getHasOutCard();
+                            Model.Channels[i].sIDAddress = cheDaoSet.get(i).getCameraIP();
+                            //Model.PubVal.Channels[i].sIDSignal = ;
+                            Model.Channels[i].sSubJH = cheDaoSet.get(i).getSubJH();
+                            Model.Channels[i].iXieYi = cheDaoSet.get(i).getXieYi();
+                            Model.Channels[i].sIP = cheDaoSet.get(i).getIP();
+                        }
+                    }
+
+                    @Override
+                    public void error(String url, String string)
+                    {
+
+                    }
+                }, resultUrl));
     }
 
 

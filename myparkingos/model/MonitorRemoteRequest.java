@@ -4,8 +4,8 @@ import android.annotation.TargetApi;
 import android.os.Build;
 import android.util.Log;
 
+import com.example.administrator.myparkingos.constant.SelectModel;
 import com.example.administrator.myparkingos.model.beans.BlackListOpt;
-import com.example.administrator.myparkingos.model.beans.SelectModel;
 import com.example.administrator.myparkingos.model.beans.gson.EntityAddLog;
 import com.example.administrator.myparkingos.model.beans.gson.EntityBlackList;
 import com.example.administrator.myparkingos.model.beans.gson.EntityCarIn;
@@ -27,7 +27,6 @@ import com.example.administrator.myparkingos.model.beans.gson.EntitySetCarOut;
 import com.example.administrator.myparkingos.model.beans.gson.EntitySetCarOutNoCPH;
 import com.example.administrator.myparkingos.model.beans.gson.EntitySummaryInfo;
 import com.example.administrator.myparkingos.model.beans.gson.EntityUserInfo;
-import com.example.administrator.myparkingos.model.responseInfo.SetCarInResp;
 import com.example.administrator.myparkingos.util.L;
 import com.example.administrator.myparkingos.util.TimeConvertUtils;
 
@@ -36,7 +35,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**

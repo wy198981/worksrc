@@ -1,6 +1,7 @@
 package com.example.administrator.myparkingos.myUserControlLibrary.niceSpinner;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -19,9 +20,9 @@ import java.util.List;
 public class NiceSpinner extends FrameLayout implements View.OnClickListener
 {
 
-    private CustemSpinerAdapter custemSpinerAdapter;
+    private CustemSpinnerAdapter custemSpinerAdapter;
     private List<String> nameList = new ArrayList<String>();
-    private SpinerPopWindow spinerPopWindow;
+    private SpinnerPopWindow spinerPopWindow;
     private ImageButton imageButton;
     private TextView textView;
 
@@ -48,15 +49,22 @@ public class NiceSpinner extends FrameLayout implements View.OnClickListener
         View.inflate(context, R.layout.popu_window, this);
         setFocusableInTouchMode(true);
 
-        custemSpinerAdapter = new CustemSpinerAdapter(context);
+        custemSpinerAdapter = new CustemSpinnerAdapter(context);
         custemSpinerAdapter.refreshData(nameList, 0);
-        spinerPopWindow = new SpinerPopWindow(context);
+        spinerPopWindow = new SpinnerPopWindow(context);
         spinerPopWindow.setAdatper(custemSpinerAdapter);
 
         imageButton = (ImageButton) findViewById(R.id.bt_Stationdropdown);
         imageButton.setOnClickListener(this);
 
         textView = (TextView) findViewById(R.id.tv_Stationvalue);
+    }
+
+    private SpinnerListener mListener;
+
+    public void setSpinnerListener(SpinnerListener listener)
+    {
+        mListener = listener;
         spinerPopWindow.setItemListener(new AbstractSpinerAdapter.IOnItemSelectListener()
         {
             @Override
@@ -65,17 +73,14 @@ public class NiceSpinner extends FrameLayout implements View.OnClickListener
                 String listDataByIndex = getListDataByIndex(pos);
                 textView.setText(listDataByIndex);
 
-                if (mListener != null)
+                if (mListener != null)// 在构造函数时，mListener没有赋值;
+                {
                     mListener.OnSpinnerItemClick(pos);
+                }
             }
         });
-    }
 
-    private SpinnerListener mListener;
 
-    public void setSpinnerListener(SpinnerListener listener)
-    {
-        mListener = listener;
     }
 
     public interface SpinnerListener
@@ -101,6 +106,22 @@ public class NiceSpinner extends FrameLayout implements View.OnClickListener
             return null;
 
         return nameList.get(index);
+    }
+
+    public void refreshData(List<String> list, int index, boolean firstEmpty)
+    {
+        if (!checkList(list, index))
+            return;
+
+        nameList.clear();
+        nameList.addAll(list);
+        custemSpinerAdapter.refreshData(nameList, index);
+        if (firstEmpty)
+        {
+            textView.setText("");// 设置为空
+        }
+        else
+            textView.setText(getListDataByIndex(index));
     }
 
 
@@ -136,9 +157,9 @@ public class NiceSpinner extends FrameLayout implements View.OnClickListener
         textView.setText(getListDataByIndex(index));
     }
 
-    class CustemSpinerAdapter extends AbstractSpinerAdapter<String>
+    class CustemSpinnerAdapter extends AbstractSpinerAdapter<String>
     {
-        public CustemSpinerAdapter(Context context)
+        public CustemSpinnerAdapter(Context context)
         {
             super(context);
         }
@@ -173,4 +194,35 @@ public class NiceSpinner extends FrameLayout implements View.OnClickListener
         return textView.getText().toString();
     }
 
+    public void setCanEnable(boolean isEnable)
+    {
+        imageButton.setEnabled(isEnable);
+    }
+
+
+    public int getCurrentIndex()
+    {
+        String currentText = getCurrentText();
+        if (TextUtils.isEmpty(currentText) || nameList.size() == 0)
+        {
+            return 0;
+        }
+
+        for (int i = 0; i < nameList.size(); i++)
+        {
+            String o = nameList.get(i);
+            if (o.equals(currentText))
+            {
+                return i;
+            }
+        }
+        L.e("no find " + currentText);
+        return 0;
+    }
+
+    // bt_Stationdropdown
+    public void resetDropDownIcon(int resourceID)
+    {
+        imageButton.setBackgroundResource(resourceID);
+    }
 }

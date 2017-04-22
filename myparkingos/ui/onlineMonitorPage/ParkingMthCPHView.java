@@ -11,6 +11,8 @@ import android.widget.TextView;
 
 import com.example.administrator.mydistributedparkingos.R;
 
+import java.util.Map;
+
 /**
  * Created by Administrator on 2017-04-10.
  */
@@ -22,10 +24,13 @@ public class ParkingMthCPHView implements View.OnClickListener
     private TextView tvExitOutName;
     private Button btnMthOk;
     private Button btnMthCancel;
+    private Map<String,Object> dataMap;
+    private int laneIndex;
 
-    public ParkingMthCPHView(Activity activity)
+    public ParkingMthCPHView(Activity activity, Map<String,Object> inMap)
     {
         this.mActivity = activity;
+        this.dataMap = inMap;
         prepare(activity);
 
     }
@@ -46,6 +51,21 @@ public class ParkingMthCPHView implements View.OnClickListener
 
         initView();
         dialog.setTitle(activity.getResources().getString(R.string.tempPlate_title));
+
+        loadData();
+    }
+
+    private void loadData()
+    {
+        laneIndex = (int) dataMap.get("laneIndex");
+
+//        m_hLPRClient = ParkingMonitoring.m_hLPRClient[laneIndex];
+//        m_nSerialHandle = ParkingMonitoring.m_nSerialHandle[laneIndex]; // 获取句柄
+
+        tvCarNo.setText((CharSequence) dataMap.get("CPH"));
+        tvExitOutName.setText((CharSequence) dataMap.get("InOutName"));
+
+//        cmd = new ParkingCommunication.VoiceSend(ParkingMonitoring.m_hLPRClient, ParkingMonitoring.m_nSerialHandle, 1007, 1005); //发送语音的接口
     }
 
     private void initView()
@@ -61,6 +81,33 @@ public class ParkingMthCPHView implements View.OnClickListener
 
     @Override
     public void onClick(View v)
+    {
+        switch (v.getId())
+        {
+            case R.id.btnMthOk:
+            {
+//                cmd.SendOpen(laneIndex); 发送语音
+//                if (ParkingModel.Model.bOut485)
+//                {
+//                    System.Threading.Thread.Sleep(50);
+//                }
+
+//                cmd.VoiceDisplay(ParkingCommunication.VoiceType.OutGateVoice, laneIndex, dicAfferentParameter["CardType"].ToString(), lblCPH.Content.ToString(), Convert.ToInt32(dicAfferentParameter["RemainingDays"]), "FFFF", Convert.ToInt32(dicAfferentParameter["RemainingPlaceCount"]));
+                break;
+            }
+            case R.id.btnMthCancel:
+            {
+//                string strsLoad = "D4";
+//                cmd.LoadLsNoX2010znykt(laneIndex, strsLoad);
+
+                onCancelChargeClick();
+                cancel();
+                break;
+            }
+        }
+    }
+
+    public void onCancelChargeClick()
     {
 
     }
@@ -79,12 +126,12 @@ public class ParkingMthCPHView implements View.OnClickListener
 
     }
 
-    public void dismiss()
+    public void cancel()
     {
         if (dialog != null && dialog.isShowing())
         {
             clearDataInView();
-            dialog.dismiss();
+            dialog.cancel();
         }
     }
 

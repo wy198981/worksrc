@@ -20,11 +20,8 @@ import com.example.administrator.myparkingos.constant.CR;
 import com.example.administrator.myparkingos.myUserControlLibrary.radioBtn.FlowRadioGroup;
 import com.example.administrator.myparkingos.myUserControlLibrary.spinnerList.AbstractSpinerAdapter;
 import com.example.administrator.myparkingos.myUserControlLibrary.spinnerList.SpinerPopWindow;
-import com.example.administrator.myparkingos.util.CommUtils;
 import com.example.administrator.myparkingos.util.L;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 

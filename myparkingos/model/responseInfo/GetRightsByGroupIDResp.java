@@ -10,7 +10,7 @@ public class GetRightsByGroupIDResp
     private String rcode;
     private String msg;
 
-    private List<DataBean> data;
+    private List<DataBean> data; // 包含有一系列的信息
 
     @Override
     public String toString()

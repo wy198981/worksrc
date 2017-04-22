@@ -1,6 +1,6 @@
 package com.example.administrator.myparkingos.model;
 
-import com.example.administrator.myparkingos.model.beans.SelectModel;
+import com.example.administrator.myparkingos.constant.SelectModel;
 import com.google.gson.Gson;
 
 import java.util.ArrayList;

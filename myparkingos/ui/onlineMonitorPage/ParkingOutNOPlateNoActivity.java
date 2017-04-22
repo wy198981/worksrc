@@ -6,7 +6,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RadioButton;
@@ -21,32 +20,31 @@ import com.example.administrator.myparkingos.myUserControlLibrary.niceSpinner.Ni
  */
 public class ParkingOutNOPlateNoActivity extends AppCompatActivity implements View.OnClickListener
 {
+    private NiceSpinner dtpStart;
+    private NiceSpinner dtpEnd;
+    private NiceSpinner cmbColor;
+    private NiceSpinner cmbCardType;
+    private EditText txtCPH;
+    private NiceSpinner cmbCarType;
+    private NiceSpinner cmbJHDZ;
+    private NiceSpinner cmbGateName;
+    private NiceSpinner cmbFree;
+    private TextView tvNeedMoney;
     private Button btnNoPlateOutSearch;
     private Button btnNoPlateOutCalc;
     private Button btnNoPlateOutOpen;
     private Button btnNoPlateOutFreeOpen;
     private Button btnNoPlateOutPrint;
     private Button btnNoPlateOutCancel;
-    private RadioButton rgWeixin;
-    private RadioButton rgZhifubao;
+    private RadioButton radWX;
+    private RadioButton radZFB;
+    private TextView txtAuth_code;
     private ListView lvNoPlate;
     private TextView tvMoney;
     private ImageView ivInPicture;
     private TextView tvInPicHint;
     private ImageView ivOutPicture;
     private TextView tvOutPicHint;
-    private TextView tvTimeStart;
-    private ImageButton bt_selectCarlendarStart;
-    private TextView tvTimeEnd;
-    private ImageButton bt_selectCarlendarEnd;
-    private NiceSpinner nSpCarColor;
-    private NiceSpinner nSpCarType;
-    private EditText etInputTempCar;
-    private NiceSpinner nSpCarBrand;
-    private NiceSpinner nSpDiscountSpace;
-    private NiceSpinner nSpOutChannelName;
-    private NiceSpinner nSpFreeReason;
-    private TextView tvNeedMoney;
 
     //
 
@@ -60,53 +58,58 @@ public class ParkingOutNOPlateNoActivity extends AppCompatActivity implements Vi
 
     private void initView()
     {
-        btnNoPlateOutSearch = (Button) findViewById(R.id.btnNoPlateOutSearch);
-        btnNoPlateOutCalc = (Button) findViewById(R.id.btnNoPlateOutCalc);
-        btnNoPlateOutOpen = (Button) findViewById(R.id.btnNoPlateOutOpen);
-        btnNoPlateOutFreeOpen = (Button) findViewById(R.id.btnNoPlateOutFreeOpen);
-        btnNoPlateOutPrint = (Button) findViewById(R.id.btnNoPlateOutPrint);
-        btnNoPlateOutCancel = (Button) findViewById(R.id.btnNoPlateOutCancel);
-        rgWeixin = (RadioButton) findViewById(R.id.rgWeixin);
-        rgZhifubao = (RadioButton) findViewById(R.id.rgZhifubao);
-        lvNoPlate = (ListView) findViewById(R.id.lvNoPlate);
-        tvMoney = (TextView) findViewById(R.id.tvMoney);
-        ivInPicture = (ImageView) findViewById(R.id.ivInPicture);
-        tvInPicHint = (TextView) findViewById(R.id.tvInPicHint);
-        ivOutPicture = (ImageView) findViewById(R.id.ivOutPicture);
-        tvOutPicHint = (TextView) findViewById(R.id.tvOutPicHint);
-
-        btnNoPlateOutSearch.setOnClickListener(this);
-        btnNoPlateOutCalc.setOnClickListener(this);
-        btnNoPlateOutOpen.setOnClickListener(this);
-        btnNoPlateOutFreeOpen.setOnClickListener(this);
-        btnNoPlateOutPrint.setOnClickListener(this);
-        btnNoPlateOutCancel.setOnClickListener(this);
-
-        tvTimeStart = (TextView) findViewById(R.id.tvTimeStart);
-        tvTimeStart.setOnClickListener(this);
-        bt_selectCarlendarStart = (ImageButton) findViewById(R.id.bt_selectCarlendarStart);
-        bt_selectCarlendarStart.setOnClickListener(this);
-        tvTimeEnd = (TextView) findViewById(R.id.tvTimeEnd);
-        tvTimeEnd.setOnClickListener(this);
-        bt_selectCarlendarEnd = (ImageButton) findViewById(R.id.bt_selectCarlendarEnd);
-        bt_selectCarlendarEnd.setOnClickListener(this);
-        nSpCarColor = (NiceSpinner) findViewById(R.id.nSpCarColor);
-        nSpCarColor.setOnClickListener(this);
-        nSpCarType = (NiceSpinner) findViewById(R.id.nSpCarType);
-        nSpCarType.setOnClickListener(this);
-        etInputTempCar = (EditText) findViewById(R.id.etInputTempCar);
-        etInputTempCar.setOnClickListener(this);
-        nSpCarBrand = (NiceSpinner) findViewById(R.id.nSpCarBrand);
-        nSpCarBrand.setOnClickListener(this);
-        nSpDiscountSpace = (NiceSpinner) findViewById(R.id.nSpDiscountSpace);
-        nSpDiscountSpace.setOnClickListener(this);
-        nSpOutChannelName = (NiceSpinner) findViewById(R.id.nSpOutChannelName);
-        nSpOutChannelName.setOnClickListener(this);
-        nSpFreeReason = (NiceSpinner) findViewById(R.id.nSpFreeReason);
-        nSpFreeReason.setOnClickListener(this);
+        dtpStart = (NiceSpinner) findViewById(R.id.dtpStart);
+        dtpStart.setOnClickListener(this);
+        dtpEnd = (NiceSpinner) findViewById(R.id.dtpEnd);
+        dtpEnd.setOnClickListener(this);
+        cmbColor = (NiceSpinner) findViewById(R.id.cmbColor);
+        cmbColor.setOnClickListener(this);
+        cmbCardType = (NiceSpinner) findViewById(R.id.cmbCardType);
+        cmbCardType.setOnClickListener(this);
+        txtCPH = (EditText) findViewById(R.id.txtCPH);
+        txtCPH.setOnClickListener(this);
+        cmbCarType = (NiceSpinner) findViewById(R.id.cmbCarType);
+        cmbCarType.setOnClickListener(this);
+        cmbJHDZ = (NiceSpinner) findViewById(R.id.cmbJHDZ);
+        cmbJHDZ.setOnClickListener(this);
+        cmbGateName = (NiceSpinner) findViewById(R.id.cmbGateName);
+        cmbGateName.setOnClickListener(this);
+        cmbFree = (NiceSpinner) findViewById(R.id.cmbFree);
+        cmbFree.setOnClickListener(this);
         tvNeedMoney = (TextView) findViewById(R.id.tvNeedMoney);
         tvNeedMoney.setOnClickListener(this);
+        btnNoPlateOutSearch = (Button) findViewById(R.id.btnNoPlateOutSearch);
+        btnNoPlateOutSearch.setOnClickListener(this);
+        btnNoPlateOutCalc = (Button) findViewById(R.id.btnNoPlateOutCalc);
+        btnNoPlateOutCalc.setOnClickListener(this);
+        btnNoPlateOutOpen = (Button) findViewById(R.id.btnNoPlateOutOpen);
+        btnNoPlateOutOpen.setOnClickListener(this);
+        btnNoPlateOutFreeOpen = (Button) findViewById(R.id.btnNoPlateOutFreeOpen);
+        btnNoPlateOutFreeOpen.setOnClickListener(this);
+        btnNoPlateOutPrint = (Button) findViewById(R.id.btnNoPlateOutPrint);
+        btnNoPlateOutPrint.setOnClickListener(this);
+        btnNoPlateOutCancel = (Button) findViewById(R.id.btnNoPlateOutCancel);
+        btnNoPlateOutCancel.setOnClickListener(this);
+        radWX = (RadioButton) findViewById(R.id.radWX);
+        radWX.setOnClickListener(this);
+        radZFB = (RadioButton) findViewById(R.id.radZFB);
+        radZFB.setOnClickListener(this);
+        txtAuth_code = (TextView) findViewById(R.id.txtAuth_code);
+        txtAuth_code.setOnClickListener(this);
+        lvNoPlate = (ListView) findViewById(R.id.lvNoPlate);
+        lvNoPlate.setOnClickListener(this);
+        tvMoney = (TextView) findViewById(R.id.tvMoney);
+        tvMoney.setOnClickListener(this);
+        ivInPicture = (ImageView) findViewById(R.id.ivInPicture);
+        ivInPicture.setOnClickListener(this);
+        tvInPicHint = (TextView) findViewById(R.id.tvInPicHint);
+        tvInPicHint.setOnClickListener(this);
+        ivOutPicture = (ImageView) findViewById(R.id.ivOutPicture);
+        ivOutPicture.setOnClickListener(this);
+        tvOutPicHint = (TextView) findViewById(R.id.tvOutPicHint);
+        tvOutPicHint.setOnClickListener(this);
     }
+
 
     @Override
     public void onClick(View v)
@@ -130,10 +133,6 @@ public class ParkingOutNOPlateNoActivity extends AppCompatActivity implements Vi
                 break;
             case R.id.btnNoPlateOutCancel:
 
-                break;
-            case R.id.bt_selectCarlendarStart:
-                break;
-            case R.id.bt_selectCarlendarEnd:
                 break;
         }
     }

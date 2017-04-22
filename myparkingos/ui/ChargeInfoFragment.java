@@ -31,6 +31,7 @@ public class ChargeInfoFragment extends Fragment
     private TextView tvAmountMoney;
     private TextView tvRemainerMoney;
     private LinearLayout llChargeInfoItem;
+    private TextView tvValidMoney;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState)
@@ -62,6 +63,8 @@ public class ChargeInfoFragment extends Fragment
         tvAmountMoney = (TextView) root.findViewById(R.id.tvAmountMoney);
         tvRemainerMoney = (TextView) root.findViewById(R.id.tvRemainerMoney); // 11
         llChargeInfoItem = (LinearLayout) root.findViewById(R.id.llChargeInfoItem);
+        tvValidMoney = (TextView) root.findViewById(R.id.tvValidMoney);
+
 
         tvPersonNo.setText("");
         personName.setText("");
@@ -84,7 +87,7 @@ public class ChargeInfoFragment extends Fragment
         if (inList == null || inList.size() != 11) // 11个标签数据
         {
             L.i("inList == null || inList.size() != 11" + "inList.size():" + inList.size());
-            return ;
+            return;
         }
         tvPersonNo.setText(inList.get(0));
         personName.setText(inList.get(1));
@@ -97,5 +100,38 @@ public class ChargeInfoFragment extends Fragment
         tvPayMoney.setText(inList.get(8));
         tvAmountMoney.setText(inList.get(9));
         tvRemainerMoney.setText(inList.get(10));
+    }
+
+    public void setCarType(String text)
+    {
+        if (text == null) return;
+        tvCarType.setText(text);
+    }
+
+    public void setPayMoney(String text)
+    {
+        if (text == null) return;
+        tvPayMoney.setText(text);
+    }
+
+    public void setRemainerMoneyLabel(String text)
+    {
+        tvValidMoney.setText(text);
+    }
+
+    public void setRemainerMoneyLabelVisiable(int type)
+    {
+        tvValidMoney.setVisibility(type);
+    }
+
+    public void setRemainerMoneyValue(String text)
+    {
+        if (text == null) return;
+        tvRemainerMoney.setText(text);
+    }
+
+    public void setRemainerMoneyValueVisiable(int type)
+    {
+        tvRemainerMoney.setVisibility(type);
     }
 }

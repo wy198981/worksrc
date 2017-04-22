@@ -176,4 +176,54 @@ public class FragmentChargeManager
         ChargePromptFragment chargePromptFragment = (ChargePromptFragment) fragmentsList.get(2);
         chargePromptFragment.setViewPrompt(txt);
     }
+
+    public void setCarSpaceOutCountHint(String text)
+    {
+        if (text == null) return;
+        ChargeSpaceFragment fragment = (ChargeSpaceFragment) fragmentsList.get(1);
+        fragment.setOutCountHintText(text);
+    }
+
+    public void setCarSpaceOutCountValue(String text)
+    {
+        if (text == null) return;
+        ChargeSpaceFragment fragment = (ChargeSpaceFragment) fragmentsList.get(1);
+        fragment.setOutCountText(text);
+    }
+
+    public void setChargeInfoCardType(String text)
+    {
+        ChargeInfoFragment fragment = (ChargeInfoFragment) fragmentsList.get(0);
+        fragment.setCarType(text);
+    }
+
+    public void setChargeInfoPayMoney(String text)
+    {
+        ChargeInfoFragment fragment = (ChargeInfoFragment) fragmentsList.get(0);
+        fragment.setPayMoney(text);
+    }
+
+    public void setChargeInfoValidMoneyValue(String text)
+    {
+        ChargeInfoFragment fragment = (ChargeInfoFragment) fragmentsList.get(0);
+        fragment.setRemainerMoneyLabel(text);
+    }
+
+    public void setChargeInfoValidMoneyVisiable(int type)
+    {
+        ChargeInfoFragment fragment = (ChargeInfoFragment) fragmentsList.get(0);
+        fragment.setRemainerMoneyLabelVisiable(type);
+    }
+
+    public void setChargeInfoReminderValue(String text)
+    {
+        ChargeInfoFragment fragment = (ChargeInfoFragment) fragmentsList.get(0);
+        fragment.setRemainerMoneyValue(text);
+    }
+
+    public void setChargeInfoReminderValueVisiable(int type)
+    {
+        ChargeInfoFragment fragment = (ChargeInfoFragment) fragmentsList.get(0);
+        fragment.setRemainerMoneyValueVisiable(type);
+    }
 }

@@ -96,6 +96,18 @@ public class GetParkDiscountJHSetResp
         private String Manner;//     Y   优惠方式。小时、元、%(表示打多少折)。
         // 如果为打折的方式则Favorable的值应控制在0到100之间。服务端在计算打折金额时，如果Favorable的值小于0则按0算，如果大于100则按100算。
 
+        public DataBean()
+        {
+
+        }
+
+        public DataBean(long ID, String address, double favorable, String manner)
+        {
+            this.ID = ID;
+            Address = address;
+            Favorable = favorable;
+            Manner = manner;
+        }
 
         @Override
         public String toString()

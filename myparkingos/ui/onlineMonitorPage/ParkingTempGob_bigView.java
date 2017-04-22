@@ -3,6 +3,7 @@ package com.example.administrator.myparkingos.ui.onlineMonitorPage;
 import android.app.Activity;
 import android.app.Dialog;
 import android.graphics.Bitmap;
+import android.text.TextUtils;
 import android.view.Display;
 import android.view.View;
 import android.view.Window;
@@ -18,12 +19,10 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 
 import com.example.administrator.mydistributedparkingos.R;
-import com.example.administrator.myparkingos.ParkingModel.Model;
-import com.example.administrator.myparkingos.constant.GlobalParams;
+import com.example.administrator.myparkingos.model.beans.Model;
 import com.example.administrator.myparkingos.model.responseInfo.GetCardTypeDefResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetFreeReasonResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetParkDiscountJHSetResp;
-import com.example.administrator.myparkingos.model.responseInfo.GetSysSettingObjectResp;
 import com.example.administrator.myparkingos.model.responseInfo.SetCarOutResp;
 import com.example.administrator.myparkingos.myUserControlLibrary.niceSpinner.NiceSpinner;
 import com.example.administrator.myparkingos.util.L;
@@ -46,7 +45,7 @@ public class ParkingTempGob_bigView implements View.OnClickListener
     private TextView tvInDateTime;
     private TextView tvOutTime;
     private TextView tvTimeDuration;
-    private EditText etStopCarMoney;
+    private TextView etStopCarMoney;
     private TextView needPayMoney;
     private NiceSpinner nsDiscountSpace;
     private NiceSpinner nSpFreeReason;
@@ -74,13 +73,16 @@ public class ParkingTempGob_bigView implements View.OnClickListener
     private ArrayList<String> reasonList;
     private ArrayList<String> discountList;
     private Button btnPrintBill;
-    private TextView tvPayText;
+    private EditText etPayText;
     private ArrayList<String> carIssuelist = new ArrayList<String>();
     private ArrayList<String> carInParkinglist = new ArrayList<String>();
     private ArrayAdapter<String> issueAdapter;
     private ArrayAdapter<String> carInParkingAdapter;
     private ArrayList<String> cardTypeList;
     private EditText etNeedPayMoney;
+    public String title;
+
+
 
     public static enum E_VIEW_TYPE
     {
@@ -89,12 +91,10 @@ public class ParkingTempGob_bigView implements View.OnClickListener
         E_VIEW_CHARGE_UNKOWN, // 没有类型
     }
 
-
-    private E_VIEW_TYPE mType = E_VIEW_TYPE.E_VIEW_CHARGE_UNKOWN;
+    public E_VIEW_TYPE mType = E_VIEW_TYPE.E_VIEW_CHARGE_UNKOWN;
 
     public ParkingTempGob_bigView(Activity activity, E_VIEW_TYPE type)
     {
-        L.i("ParkingTempGob_bigView");
         this.mActivity = activity;
         this.mType = type;
         dialog = new Dialog(activity); // @android:style/Theme.Dialog
@@ -108,18 +108,19 @@ public class ParkingTempGob_bigView implements View.OnClickListener
         p.height = (int) (d.getHeight() * 1 / 1.5); // 改变的是dialog框在屏幕中的位置而不是大小
         p.width = (int) (d.getWidth() * 1 / 2); // 宽度设置为屏幕的0.65
         window.setAttributes(p);
-
-        dialog.setTitle(mActivity.getResources().getString(R.string.charge_title));
+        title = mActivity.getResources().getString(R.string.charge_title);
+        dialog.setTitle(title);
         initView();
     }
 
     public void loadedDataWhenNotInRecord()
     {
+
     }
 
     public void loadedDataWhenHaveInRecord()
     {
-
+        initControlStatusBySysSetting();
     }
 
     /**
@@ -127,85 +128,34 @@ public class ParkingTempGob_bigView implements View.OnClickListener
      */
     public void initControlStatusBySysSetting()
     {
-        if (GlobalParams.getSysSettingObjectResp() == null) return;
-        GetSysSettingObjectResp.DataBean objectResp = GlobalParams.getSysSettingObjectResp();
-        if (Integer.parseInt(objectResp.getiBillPrint()) == 1)
-        {
-            btnPrintBill.setVisibility(View.VISIBLE);
-        }
-        else
-        {
-            btnPrintBill.setVisibility(View.GONE);
-        }
+        btnPrintBill.setVisibility(Model.iBillPrint == 1 ? View.VISIBLE : View.INVISIBLE); // 0
+        etStopCarMoney.setEnabled(Model.iSetTempMoney == 1 ? false : true); // 1
+//        etStopCarMoney.setFocusable(Model.iSetTempMoney == 1 ? false : true);
+        //txtSFJE.DecimalPlaces
+        btnCancelCharge.setVisibility(Model.iSFCancel == 1 ? View.VISIBLE : View.GONE); // 1
+        btnPrintBill.setVisibility(Model.iBillPrint > 0 ? View.VISIBLE : View.INVISIBLE);// 0
+//        btnFavorable.Visibility = Model.bMonthCardCharge ? System.Windows.Visibility.Visible : System.Windows.Visibility.Hidden;
 
-        if (Integer.parseInt(objectResp.getbSetTempMoney()) == 1)
-        {
-            etStopCarMoney.setFocusable(true);
-        }
-        else
-        {
-            etStopCarMoney.setFocusable(false);
-        }
+        btnChargeFree.setEnabled(Model.iTempFree > 0); // 1
+        nSpFreeReason.setCanEnable(Model.iTempFree > 0);//1
 
-        if (Integer.parseInt(objectResp.getbSFCancel()) == 1)
-        {
-            btnCancelCharge.setVisibility(View.VISIBLE);
-        }
-        else
-        {
-            btnCancelCharge.setVisibility(View.GONE);
-        }
-
-        if (Integer.parseInt(objectResp.getiBillPrint()) > 0)
-        {
-            btnPrintBill.setVisibility(View.VISIBLE);
-        }
-        else
-        {
-            btnPrintBill.setVisibility(View.GONE);
-        }
-
-        if (Integer.parseInt(objectResp.getiTempFree()) > 0)
-        {
-            btnChargeFree.setEnabled(true);
-            nSpFreeReason.setFocusable(true);
-        }
-        else
-        {
-            btnChargeFree.setEnabled(false);
-            nSpFreeReason.setFocusable(false);
-        }
-
-        if (Integer.parseInt(objectResp.getiIDCapture()) > 0)
-        {
-            btnPicCapture.setEnabled(true);
-        }
-        else
-        {
-            btnPicCapture.setEnabled(false);
-        }
-
-        if (Integer.parseInt(objectResp.getbSetTempCardType()) > 0)
-        {
-            nsCarType.setFocusable(true);
-        }
-        else
-        {
-            nsCarType.setFocusable(false);
-        }
-
-        if (Integer.parseInt(objectResp.getbOnlinePayEnabled()) == 1)
+        btnPicCapture.setEnabled(Model.iIDCapture > 0); // 1
+        nsCarType.setCanEnable(Model.iSetTempCardType > 0);//1
+        if (Model.iOnlinePayEnabled == 1)//1
         {
             rgPayWeixin.setEnabled(true);
             rgPayZhifubao.setEnabled(true);
-            tvPayText.setEnabled(true);
+            etPayText.setEnabled(true);
         }
+
         else
+
         {
             rgPayWeixin.setEnabled(false);
             rgPayZhifubao.setEnabled(false);
-            tvPayText.setEnabled(false);
+            etPayText.setEnabled(false);
         }
+
     }
 
 
@@ -220,13 +170,40 @@ public class ParkingTempGob_bigView implements View.OnClickListener
         tvInDateTime = (TextView) dialog.findViewById(R.id.tvInDateTime);
         tvOutTime = (TextView) dialog.findViewById(R.id.tvOutTime);
         tvTimeDuration = (TextView) dialog.findViewById(R.id.tvTimeDuration);
-        etStopCarMoney = (EditText) dialog.findViewById(R.id.etStopCarMoney);
+        etStopCarMoney = (TextView) dialog.findViewById(R.id.tvStopCarMoney);
         needPayMoney = (TextView) dialog.findViewById(R.id.needPayMoney);
         nsDiscountSpace = (NiceSpinner) dialog.findViewById(R.id.nsDiscountSpace);
+        nsDiscountSpace.setSpinnerListener(new NiceSpinner.SpinnerListener()
+        {
+            @Override
+            public void OnSpinnerItemClick(int pos)
+            {
+
+            }
+        });
         nSpFreeReason = (NiceSpinner) dialog.findViewById(R.id.nSpFreeReason);
+        nSpFreeReason.setSpinnerListener(new NiceSpinner.SpinnerListener()
+        {
+            @Override
+            public void OnSpinnerItemClick(int pos)
+            {
+
+            }
+        });
         rgPayWeixin = (RadioButton) dialog.findViewById(R.id.rgPayWeixin);
         rgPayZhifubao = (RadioButton) dialog.findViewById(R.id.rgPayZhifubao);
         nsCarType = (NiceSpinner) dialog.findViewById(R.id.nsCarType);
+        nsCarType.setSpinnerListener(new NiceSpinner.SpinnerListener()
+        {
+            @Override
+            public void OnSpinnerItemClick(int pos)
+            {
+                String cmdCardType = getCmdCardType();
+                tvCarType.setText(cmdCardType);
+                onSelectCarTypeChange(pos);
+            }
+        });
+
         btnCancelCharge = (Button) dialog.findViewById(R.id.btnCancelCharge);
         btnVoicePay = (Button) dialog.findViewById(R.id.btnVoicePay);
         btnCutOff = (Button) dialog.findViewById(R.id.btnCutOff);
@@ -242,7 +219,7 @@ public class ParkingTempGob_bigView implements View.OnClickListener
         tvWarmHint = (TextView) dialog.findViewById(R.id.tvWarmHint);
         llNoCarRecord = (LinearLayout) dialog.findViewById(R.id.llNoCarRecord);
         btnPrintBill = (Button) dialog.findViewById(R.id.btnPrintBill);
-        tvPayText = (TextView) dialog.findViewById(R.id.tvPayText);
+        etPayText = (EditText) dialog.findViewById(R.id.etPayText);
         etNeedPayMoney = (EditText) dialog.findViewById(R.id.etNeedPayMoney);
 
         btnCancelCharge.setOnClickListener(this);
@@ -255,7 +232,7 @@ public class ParkingTempGob_bigView implements View.OnClickListener
         btnNoRecordPass.setOnClickListener(this);
         btnPrintBill.setOnClickListener(this);
 
-        showViewByType();
+        showViewByType(mType);
 
         reasonList = new ArrayList<>();
         nSpFreeReason.refreshData(reasonList, 0);
@@ -289,14 +266,18 @@ public class ParkingTempGob_bigView implements View.OnClickListener
             }
         });
 
-
         cardTypeList = new ArrayList<>();
         nsCarType.refreshData(cardTypeList, 0);
     }
 
-    private void showViewByType()
+    public void onSelectCarTypeChange(int pos)
     {
-        if (mType == E_VIEW_TYPE.E_VIEW_CHARGE_HAVA_RECORD)
+
+    }
+
+    public void showViewByType(E_VIEW_TYPE type)
+    {
+        if (type == E_VIEW_TYPE.E_VIEW_CHARGE_HAVA_RECORD)
         {
             if (llnormal.getVisibility() != View.VISIBLE)
             {
@@ -308,7 +289,7 @@ public class ParkingTempGob_bigView implements View.OnClickListener
                 llNoCarRecord.setVisibility(View.GONE);
             }
         }
-        else if (mType == E_VIEW_TYPE.E_VIEW_CHARGE_NOT_RECORD)
+        else if (type == E_VIEW_TYPE.E_VIEW_CHARGE_NOT_RECORD)
         {
             if (llnormal.getVisibility() != View.GONE)
             {
@@ -327,33 +308,79 @@ public class ParkingTempGob_bigView implements View.OnClickListener
     {
         switch (v.getId())
         {
-            case R.id.btnCancelCharge:
-
+            case R.id.btnCancelCharge:// 取消收费
+                onClickCancelCharge();
                 break;
-            case R.id.btnVoicePay:
-
+            case R.id.btnVoicePay://语音报价
+                onClickVoicePay();
                 break;
-            case R.id.btnCutOff:
-
+            case R.id.btnCutOff: // 开闸放行
+                onClickCutOff();
                 break;
-            case R.id.btnPicCapture:
-
+            case R.id.btnPicCapture: //证件抓怕
+                onClickPicCapture();
                 break;
             case R.id.btnChargeFree:
-
+                onClickChargeFree();//免费放行
                 break;
-            case R.id.btnGiveUp:
-
+            case R.id.btnGiveUp: //放弃开闸
+                onClickGiveUp();
                 break;
-            case R.id.btnConfirmed:
-
+            case R.id.btnConfirmed: // 确定
+                onClickConfirmed();
                 break;
-            case R.id.btnNoRecordPass:
-
+            case R.id.btnNoRecordPass://无入场记录放行
+                onClickNoRecordPass();
                 break;
-            case R.id.btnPrintBill:
+            case R.id.btnPrintBill://打印小票
+                onClickPrintBill();
                 break;
         }
+    }
+
+    public void onClickPrintBill()
+    {
+
+    }
+
+    public void onClickNoRecordPass()
+    {
+
+    }
+
+    public void onClickConfirmed()
+    {
+
+    }
+
+    public void onClickGiveUp()
+    {
+
+    }
+
+    public void onClickChargeFree()
+    {
+
+    }
+
+    public void onClickPicCapture()
+    {
+
+    }
+
+    public void onClickCutOff()
+    {
+
+    }
+
+    public void onClickVoicePay()
+    {
+
+    }
+
+    public void onClickCancelCharge()
+    {
+
     }
 
     public void show()
@@ -370,6 +397,10 @@ public class ParkingTempGob_bigView implements View.OnClickListener
             {
                 L.i("mType == E_VIEW_TYPE.E_VIEW_CHARGE_NOT_RECORD");
                 loadedDataWhenNotInRecord();
+            }
+            else
+            {
+
             }
             dialog.show();
         }
@@ -388,7 +419,7 @@ public class ParkingTempGob_bigView implements View.OnClickListener
         }
     }
 
-    public void close()
+    public void cancel()
     {
         if (dialog != null)
         {
@@ -400,6 +431,7 @@ public class ParkingTempGob_bigView implements View.OnClickListener
     {
         if (data == null || data.size() == 0) return;
 
+        L.i("data.size():" + data.size() + data.toString());
         reasonList.clear();
         for (int i = 0; i < data.size(); i++)
         {
@@ -409,17 +441,35 @@ public class ParkingTempGob_bigView implements View.OnClickListener
         nSpFreeReason.refreshData(reasonList, 0);
     }
 
+    public int getReasonListIndex()
+    {
+        return nSpFreeReason.getCurrentIndex();
+    }
+
+    public int getDiscountListIndex()
+    {
+        return nsDiscountSpace.getCurrentIndex();
+    }
+
+
+    public int getCardTypeListIndex()
+    {
+        return nsCarType.getCurrentIndex();
+    }
+
     public void setDiscountAddressList(List<GetParkDiscountJHSetResp.DataBean> data)
     {
         if (data == null || data.size() == 0) return;
 
+        L.i("data.size():" + data.size() + data.toString());
         discountList.clear();
         for (GetParkDiscountJHSetResp.DataBean o : data)
         {
             discountList.add(o.getAddress());
         }
-        nSpFreeReason.refreshData(discountList, 0);
+        nsDiscountSpace.refreshData(discountList, 0);
     }
+
 
     public void setListViewCarInPark(List<SetCarOutResp.DataBeanInner> data)
     {
@@ -476,7 +526,7 @@ public class ParkingTempGob_bigView implements View.OnClickListener
         {
             if (Model.Language.equals("Chinese"))
             {
-                cardTypeList.add(o.getCardType());
+                cardTypeList.add(o.getCardType()); // CardType即中文
             }
             else
             {
@@ -534,16 +584,51 @@ public class ParkingTempGob_bigView implements View.OnClickListener
 
     public void setNeedMoneyOnFinal(String money)
     {
-        etStopCarMoney.setText(money);
+        etNeedPayMoney.setText(money);
     }
 
-    public String getCmdCardType()
+    public String getCmdCardType()// 获取下拉列表的数据类型
     {
         return nsCarType.getCurrentText();
     }
 
-    public String getSYJE()
+    public String getStopPayMoney()// 停车收费
     {
-        return etStopCarMoney.getEditableText().toString();
+        return etStopCarMoney.getText().toString();
+    }
+
+    public void setCarTypeByChinese(String text)
+    {
+        tvCarType.setText(text);
+    }
+
+    public String getNeedPayMoney() // 实收金额
+    {
+        return etNeedPayMoney.getText().toString();
+    }
+
+    public String getTextViewCardType()
+    {
+        return tvCarType.getText().toString();
+    }
+
+    public String getOutTime()
+    {
+        return tvOutTime.getText().toString();
+    }
+
+    public String getSelectReason()
+    {
+        return nSpFreeReason.getCurrentText();
+    }
+
+    public String getCPHInNotRecord()
+    {
+        return etCarPlate.getText().toString();
+    }
+
+    public String getCPHInHaveRecord()
+    {
+        return etCarPlate.getText().toString();
     }
 }

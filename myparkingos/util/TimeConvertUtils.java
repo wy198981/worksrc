@@ -13,6 +13,8 @@ import java.util.Date;
 public class TimeConvertUtils
 {
     static private final String formatString = "yyyy-MM-dd HH:mm:ss";
+    static private final String formatString1 = "yyyy-MM-dd 00:00:00";
+    static private final String formatString2 = "yyyyMMddHHmmss";
 
     /**
      * 获取年月日时分秒的字符串
@@ -299,5 +301,9 @@ public class TimeConvertUtils
         return date.getTime();
     }
 
+    public static String getCurrentDateAndTime()
+    {
+        return longToString(System.currentTimeMillis());
+    }
 }
 

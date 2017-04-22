@@ -4,9 +4,9 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Handler;
 import android.os.Message;
-import android.view.GestureDetector;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -15,7 +15,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.administrator.mydistributedparkingos.R;
-import com.example.administrator.myparkingos.model.ModelNode;
+import com.example.administrator.myparkingos.model.beans.Model;
+import com.example.administrator.myparkingos.model.beans.ModelNode;
 import com.example.administrator.myparkingos.util.BitmapUtils;
 import com.example.administrator.myparkingos.util.ConcurrentQueueHelper;
 import com.example.administrator.myparkingos.util.L;
@@ -114,6 +115,13 @@ public class ParkingMonitoringView implements tcpsdk.OnDataReceiver
     private View space0;
     private View space1;
     private List<View> spaceList = new ArrayList<View>();
+    private TextView tvSurplusCarCount;
+    private EditText etSearchCPH;
+    private EditText etInOutName;
+    private EditText etInOutOperator;
+    private TextView tvInOutNameText;
+    private TextView tvInOutOperatorText;
+    private TextView tvSurplusCarCountHint;
 
     public ParkingMonitoringView()
     {
@@ -286,6 +294,16 @@ public class ParkingMonitoringView implements tcpsdk.OnDataReceiver
         spaceList.add(space0);
         spaceList.add(space1);
 
+        tvSurplusCarCountHint = (TextView) monitoringActivity.findViewById(R.id.tvSurplusCarCountHint);
+        tvSurplusCarCount = (TextView) monitoringActivity.findViewById(R.id.tvSurplusCarCount);
+
+        etSearchCPH = (EditText) monitoringActivity.findViewById(R.id.etSearchCPH);
+        etInOutName = (EditText) monitoringActivity.findViewById(R.id.etInOutName);
+        etInOutOperator = (EditText) monitoringActivity.findViewById(R.id.etInOutOperator);
+
+        tvInOutNameText = (TextView) monitoringActivity.findViewById(R.id.tvInOutNameText);
+        tvInOutOperatorText = (TextView) monitoringActivity.findViewById(R.id.tvInOutOperatorText);
+
         btnCmdOPen0.setOnClickListener(myClickListener);
         btnCmdClose0.setOnClickListener(myClickListener);
         btnManual0.setOnClickListener(myClickListener);
@@ -353,6 +371,12 @@ public class ParkingMonitoringView implements tcpsdk.OnDataReceiver
         rlVideoList.add(rlVideo3);
 
         initViewData();
+
+        if (Model.iAutoPlateEn == 1)
+        {
+            btnCarIn.setText("车辆入场");
+            btnCarOut.setText("车辆出场");
+        }
     }
 
     /**
@@ -360,17 +384,11 @@ public class ParkingMonitoringView implements tcpsdk.OnDataReceiver
      */
     private void initViewData()
     {
-        /**
-         * 清空channel的信息
-         */
         for (TextView o : channelList)
         {
             o.setText("");
         }
 
-        /**
-         * 清空车牌号
-         */
         for (TextView o : cphList)
         {
             o.setText("");
@@ -638,10 +656,12 @@ public class ParkingMonitoringView implements tcpsdk.OnDataReceiver
     /**
      * 点击车位信息
      */
+
     public void onClickInParkingSpace()
     {
         btnChargeInfo.setBackgroundResource(R.color.colorClick);
         btnParkingSpace.setBackgroundResource(R.color.colorNoClick);
+
     }
 
     /**
@@ -651,7 +671,12 @@ public class ParkingMonitoringView implements tcpsdk.OnDataReceiver
     {
         tvCarChargeDetail.setBackgroundResource(R.color.colorClick);
         tvCarInParkingDetail.setBackgroundResource(R.color.colorNoClick);
+        tvInOutOperatorText.setText(R.string.parkingMonitor_enterOperator);
+        tvInOutNameText.setText(R.string.parkingMonitor_enterName);
+
+        saveNameAndOpeatorInCarDetail();
     }
+
 
     /**
      * 点击车场收费
@@ -660,7 +685,12 @@ public class ParkingMonitoringView implements tcpsdk.OnDataReceiver
     {
         tvCarInParkingDetail.setBackgroundResource(R.color.colorClick);
         tvCarChargeDetail.setBackgroundResource(R.color.colorNoClick);
+        tvInOutOperatorText.setText(R.string.parkingMonitor_exitOperator);
+        tvInOutNameText.setText(R.string.parkingMonitor_exitName);
+
+        saveNameAndOpeatorCarChargeDetail();
     }
+
 
     public void chargeInfoToFragmentChange()
     {
@@ -1034,24 +1064,161 @@ public class ParkingMonitoringView implements tcpsdk.OnDataReceiver
 
     /**
      * 4_06 视频显示的画面的逻辑：必定是先显示入场，然后显示出场；
-     *                         入场的图片是在视频播放下面;
-     *      存在的情况：
-     *          前提：最多只有4路显示视频；且不是副摄像头拍摄；
-     *          情况的处理情况如下：
-     *              1，如果入场和出场的总数大于4，即只取前面四路；
-     *              2，如果总通道是1，或入场或出场 且左上角和左下角分别显示视频和图片； 右侧的画面显示数据不存在；
-     *              3，如果总通道是2，且一进一出，那么显示入场再显示出场；
-     *              4，             且两个入场或出场，则分开显示，且下面显示图片；
-     *              5，如果总通数是3，那么全部显示视频，不显示图片；且同样是先入场后出场的顺序
-     *              6，如果总通道是4，那么也是先入口，后出口的方式显示；
-     *         怎么逻辑封装?
-     *              1,影响因子，总通道数，通道数 > 2,则不显示图片；
-     *              2,优先显示入场视频；
+     * 入场的图片是在视频播放下面;
+     * 存在的情况：
+     * 前提：最多只有4路显示视频；且不是副摄像头拍摄；
+     * 情况的处理情况如下：
+     * 1，如果入场和出场的总数大于4，即只取前面四路；
+     * 2，如果总通道是1，或入场或出场 且左上角和左下角分别显示视频和图片； 右侧的画面显示数据不存在；
+     * 3，如果总通道是2，且一进一出，那么显示入场再显示出场；
+     * 4，             且两个入场或出场，则分开显示，且下面显示图片；
+     * 5，如果总通数是3，那么全部显示视频，不显示图片；且同样是先入场后出场的顺序
+     * 6，如果总通道是4，那么也是先入口，后出口的方式显示；
+     * 怎么逻辑封装?
+     * 1,影响因子，总通道数，通道数 > 2,则不显示图片；
+     * 2,优先显示入场视频；
      */
 
     public void setOperatorHintInfo(String text)
     {
         etOperHint.setText(text);
+    }
+
+    public void setSurplusCarCount(String text)
+    {
+        tvSurplusCarCount.setText(text);
+    }
+
+    /**
+     * 用来一堆变量来设置点击保存时的数据
+     */
+    private int mDetailFragmentType = 0; // 描述当前详情页的下标
+    private String inName = "";
+    private String outName = "";
+
+    private String inOpeator = "";
+    private String outOpeator = "";
+
+    private void saveNameAndOpeatorInCarDetail()
+    {
+        outName = new StringBuffer(getInOutName(1)).toString().trim();//保存之前切换的值
+        outOpeator = new StringBuffer(getInOutOperator(1)).toString().trim();
+        mDetailFragmentType = 0;
+        if (inName != null)
+        {
+            setInOutName(inName);
+        }
+
+        if (inOpeator != null)
+        {
+            setInOutOperator(inOpeator);
+        }
+    }
+
+    private void saveNameAndOpeatorCarChargeDetail()
+    {
+        inName = new StringBuffer(getInOutName(0)).toString().trim();
+        inOpeator = new StringBuffer(getInOutOperator(0)).toString().trim();
+        mDetailFragmentType = 1;
+
+        if (outName != null)
+        {
+            setInOutName(outName);
+        }
+
+        if (outOpeator != null)
+        {
+            setInOutOperator(outOpeator);
+        }
+    }
+
+    public String getSearchCPHText()
+    {
+        return etSearchCPH.getEditableText().toString();
+    }
+
+    public String getInOutName(int inOut)
+    {
+        if (inOut == 0)// 获取入场名称时，且当前的界面为显示入场名称时机，直接从控件中获取;
+        {
+            if (mDetailFragmentType == 0)
+            {
+                return etInOutName.getEditableText().toString().trim();
+            }
+            else if (mDetailFragmentType == 1)
+            {
+                return inName;
+            }
+        }
+        else if (inOut == 1)
+        {
+            if (mDetailFragmentType == 0)
+            {
+                return outName;
+            }
+            else if (mDetailFragmentType == 1)
+            {
+                return etInOutName.getEditableText().toString().trim();
+            }
+        }
+        return "";
+    }
+
+    public String getInOutOperator(int inOut)
+    {
+        if (inOut == 0)
+        {
+            if (mDetailFragmentType == 0)
+            {
+                return etInOutOperator.getEditableText().toString().trim();
+            }
+            else if (mDetailFragmentType == 1)
+            {
+                return inOpeator;
+            }
+        }
+        else if (inOut == 1)
+        {
+            if (mDetailFragmentType == 0)
+            {
+                return inOpeator;
+            }
+            else if (mDetailFragmentType == 1)
+            {
+                return etInOutOperator.getEditableText().toString().trim();
+            }
+        }
+        return "";
+    }
+
+    public void setInOutNameText(String text)
+    {
+        tvInOutNameText.setText(text);
+    }
+
+    public void setInOutOperatorText(String text)
+    {
+        tvInOutOperatorText.setText(text);
+    }
+
+    public void setInOutName(String text)
+    {
+        etInOutName.setText(text);
+    }
+
+    public void setInOutOperator(String text)
+    {
+        etInOutOperator.setText(text);
+    }
+
+    public void setSurplusCarCountHint(String text)
+    {
+        tvSurplusCarCountHint.setText(text);
+    }
+
+    public void setSurplusCarCountValue(String text)
+    {
+        tvSurplusCarCount.setText(text);
     }
 
 }

@@ -25,6 +25,8 @@ public class ChargeSpaceFragment extends Fragment
     private TextView tvStoreCarNum;
     private TextView tvManualNum;
     private LinearLayout llChargeSpaceItem;
+    private TextView tvOutCountHint;
+    private TextView tvOutCount;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState)
@@ -49,6 +51,8 @@ public class ChargeSpaceFragment extends Fragment
         tvStoreCarNum = (TextView) root.findViewById(R.id.tvStoreCarNum);
         tvManualNum = (TextView) root.findViewById(R.id.tvManualNum);
         llChargeSpaceItem = (LinearLayout) root.findViewById(R.id.llChargeSpaceItem);
+        tvOutCountHint = (TextView) root.findViewById(R.id.tvOutCountHint);
+        tvOutCount = (TextView) root.findViewById(R.id.tvOutCount);
     }
 
     public void setData(List<String> inList)
@@ -65,4 +69,23 @@ public class ChargeSpaceFragment extends Fragment
         tvStoreCarNum.setText(inList.get(3));
         tvManualNum.setText(inList.get(4));
     }
+
+    public void setOutCountHintText(String text)
+    {
+        if (tvOutCountHint.getVisibility() != View.VISIBLE)
+        {
+            tvOutCountHint.setVisibility(View.VISIBLE);
+        }
+        tvOutCountHint.setText(text);
+    }
+
+    public void setOutCountText(String text)
+    {
+        if (tvOutCount.getVisibility() != View.VISIBLE)
+        {
+            tvOutCount.setVisibility(View.VISIBLE);
+        }
+        tvOutCount.setText(text);
+    }
+
 }

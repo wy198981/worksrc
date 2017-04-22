@@ -91,6 +91,7 @@ public class GetNetCameraSetResp
 
     public static class DataBean
     {
+
         private long ID;              // Y 自增长唯一标识
         private int StationID;        // Y 工作站编号
         private String VideoIP;       // Y IP地址

@@ -1,7 +1,6 @@
 package com.example.administrator.myparkingos.constant;
 
 import android.content.Context;
-import android.util.ArrayMap;
 
 import com.example.administrator.myparkingos.model.responseInfo.GetCardTypeDefResp;
 import com.example.administrator.myparkingos.util.RegexUtil;
@@ -10,7 +9,8 @@ import com.example.administrator.myparkingos.util.SPUtils;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by Administrator on 2017-04-12.
@@ -45,18 +45,26 @@ public class CR
         for (int i = 0; i < lstCTD.size(); i++)
         {
             dicCardType.put(lstCTD.get(i).getIdentifying(), lstCTD.get(i).getCardType());
-            dicCardType.put(lstCTD.get(i).getCardType(), lstCTD.get(i).getIdentifying());
+            dicCardTypeValue.put(lstCTD.get(i).getCardType(), lstCTD.get(i).getIdentifying());
         }
     }
 
+    /**
+     * flag = 0, 即(临时车,TemA)
+     * flag = 1, 即(TemA, 临时车)
+     *
+     * @param type
+     * @param Flag
+     * @return
+     */
     public static String GetCardType(String type, int Flag)
     {
         String strRet = "无效卡";
         if (Flag == 0)
         {
-            for (String m: dicCardTypeValue.keySet())
+            for (String m : dicCardTypeValue.keySet())
             {
-                if (m == type)
+                if (m.equals(type))
                 {
                     strRet = dicCardTypeValue.get(m);
                 }
@@ -64,9 +72,9 @@ public class CR
         }
         else if (Flag == 1)
         {
-            for (String m: dicCardType.keySet())
+            for (String m : dicCardType.keySet())
             {
-                if (m == type)
+                if (m.equals(type))
                 {
                     strRet = dicCardType.get(m);
                 }
@@ -77,12 +85,12 @@ public class CR
 
     public static Object GetAppConfig(Context context, String key, Object defaultValue)
     {
-        return  SPUtils.get(ConstantSharedPrefs.FileAppSetting, context, key, defaultValue);
+        return SPUtils.get(ConstantSharedPrefs.FileAppSetting, context, key, defaultValue);
     }
 
     public static void UpdateAppConfig(Context context, String key, Object value)
     {
-         SPUtils.put(ConstantSharedPrefs.FileAppSetting, context, key, value);
+        SPUtils.put(ConstantSharedPrefs.FileAppSetting, context, key, value);
     }
 
     public static String stringPadLeft(String source, int totalWidth, char paddingChar)
@@ -114,6 +122,7 @@ public class CR
 
     /**
      * 检测合法车牌
+     *
      * @param strCPH
      * @return
      */
@@ -186,5 +195,16 @@ public class CR
                 return false;
             }
         }
+    }
+
+    /// <summary>
+    /// 判断字符串是否为中文字符
+    /// </summary>
+    /// <param name="s"></param>
+    /// <returns></returns>
+    public static boolean IsChineseCharacters(String str)
+    {
+        Matcher matcher = Pattern.compile("^[\u4E00-\u9FA5]+$").matcher(str);
+        return matcher.matches();
     }
 }

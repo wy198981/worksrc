@@ -10,7 +10,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.example.administrator.mydistributedparkingos.R;
-import com.example.administrator.myparkingos.constant.ConstantConfig;
+import com.example.administrator.myparkingos.constant.NetworkConfig;
 import com.example.administrator.myparkingos.constant.ConstantSharedPrefs;
 import com.example.administrator.myparkingos.util.SPUtils;
 import com.example.administrator.myparkingos.util.ScreenUtils;
@@ -25,8 +25,8 @@ public class FormServerSetActivity extends AppCompatActivity implements View.OnC
     private EditText etServerPort;
     private Button btnSave;
 
-    private String serviceIP = ConstantConfig.ServerIP;
-    private String servicePort = ConstantConfig.ServerPort;
+    private String serviceIP = NetworkConfig.ServerIP;
+    private String servicePort = NetworkConfig.ServerPort;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState)

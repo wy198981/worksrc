@@ -56,27 +56,27 @@ public class CaclChargeAmountResp
     {
         private float YSJE;    // Y 参考错误码列表
         private float SFJE;    // Y 错误信息
-        private Object DiscountSet;     // N 优惠信息对象，结构参考打折车牌设置接口的Model结构。
+//        private Object DiscountSet;     // N 优惠信息对象，结构参考打折车牌设置接口的Model结构。
         // 如果有多个优惠则只有优惠力度最大的一个生效。生效的优惠信息通过此对象返回。
         // 如果对象中的DeptId字段值大于或等于0则为打折车牌中的优惠，否则为优惠方式表中的优惠。
         private String InTime;     // N   入场时间
         private String OutTime;    // N   出场时间
         private String CardType;    // N   卡类型
         private int RemainingPlaceCount;    // N    当前剩余车位数
+        private GetParkCPHDiscountSetResp.DataBean DiscountSet; //
 
         @Override
         public String toString()
         {
-            final StringBuffer sb = new StringBuffer("DataBean{");
-            sb.append("YSJE=").append(YSJE);
-            sb.append(", SFJE=").append(SFJE);
-            sb.append(", DiscountSet=").append(DiscountSet);
-            sb.append(", InTime='").append(InTime).append('\'');
-            sb.append(", OutTime='").append(OutTime).append('\'');
-            sb.append(", CardType='").append(CardType).append('\'');
-            sb.append(", RemainingPlaceCount=").append(RemainingPlaceCount);
-            sb.append('}');
-            return sb.toString();
+            return "DataBean{" +
+                    "YSJE=" + YSJE +
+                    ", SFJE=" + SFJE +
+                    ", data=" + DiscountSet +
+                    ", InTime='" + InTime + '\'' +
+                    ", OutTime='" + OutTime + '\'' +
+                    ", CardType='" + CardType + '\'' +
+                    ", RemainingPlaceCount=" + RemainingPlaceCount +
+                    '}';
         }
 
         public float getYSJE()
@@ -99,14 +99,14 @@ public class CaclChargeAmountResp
             this.SFJE = SFJE;
         }
 
-        public Object getDiscountSet()
+        public GetParkCPHDiscountSetResp.DataBean getData()
         {
             return DiscountSet;
         }
 
-        public void setDiscountSet(Object discountSet)
+        public void setData(GetParkCPHDiscountSetResp.DataBean DiscountSet)
         {
-            DiscountSet = discountSet;
+            this.DiscountSet = DiscountSet;
         }
 
         public String getInTime()

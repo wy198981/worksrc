@@ -112,8 +112,11 @@ public class RegexUtil
      */
     public static boolean checkChinese(String chinese)
     {
-        String regex = "^[\u4E00-\u9FA5]+$";
-        return Pattern.matches(regex, chinese);
+//        String regex = "^[\u4E00-\u9FA5]+$";
+//        return Pattern.matches(regex, chinese);
+
+        Matcher matcher = Pattern.compile("^[\u4E00-\u9FA5]+$").matcher(chinese);
+        return matcher.matches();
     }
 
     /**

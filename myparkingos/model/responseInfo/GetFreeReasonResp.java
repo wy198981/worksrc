@@ -77,15 +77,15 @@ public class GetFreeReasonResp
 
     public static class DataBean
     {
-        private Long ID; //            Y 自增长唯一标识
+        private long ID; //            Y 自增长唯一标识
         private String ItemDetail; //  Y 免费原因说明
 
-        public Long getID()
+        public long getID()
         {
             return ID;
         }
 
-        public void setID(Long ID)
+        public void setID(long ID)
         {
             this.ID = ID;
         }
@@ -98,6 +98,17 @@ public class GetFreeReasonResp
         public void setItemDetail(String itemDetail)
         {
             ItemDetail = itemDetail;
+        }
+
+        public DataBean(long ID, String itemDetail)
+        {
+            this.ID = ID;
+            ItemDetail = itemDetail;
+        }
+
+        public DataBean()
+        {
+
         }
 
         @Override

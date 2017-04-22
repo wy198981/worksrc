@@ -7,10 +7,9 @@ import com.example.administrator.myparkingos.util.L;
  */
 public enum OpenWayEnum
 {
-    AutoCutOff(0),
-    ConfirmCutOff(1),
-    NoCutOff(2);
-
+    AutoCutOff(0),      // 自动开闸
+    ConfirmCutOff(1),   // 确认开闸
+    NoCutOff(2);        // 不开闸
 
     private int value;
 
