@@ -278,7 +278,7 @@ public class ParkingOutNOPlateNoView implements View.OnClickListener, GsonCallba
                 .get(resultUrl, new GsonCallback<>(CaclChargeAmountResp.class, new GsonCallback.Listener()
                 {
                     @Override
-                    public void success(String url, Object obj)
+                    public void success(Object url, Object obj, int intParam)
                     {
                         CaclChargeAmountResp caclChargeAmountResp = (CaclChargeAmountResp) obj;
                         updateMoney(caclChargeAmountResp);
@@ -295,7 +295,7 @@ public class ParkingOutNOPlateNoView implements View.OnClickListener, GsonCallba
                     }
 
                     @Override
-                    public void error(String url, String string)
+                    public void error(Object url, String string)
                     {
 
                     }
@@ -321,13 +321,13 @@ public class ParkingOutNOPlateNoView implements View.OnClickListener, GsonCallba
                 .get(resultUrl, new GsonCallback<>(CaclChargeAmountResp.class, new GsonCallback.Listener()
                 {
                     @Override
-                    public void success(String url, Object obj)
+                    public void success(Object url, Object obj, int intParam)
                     {
                         updateMoney((CaclChargeAmountResp) obj);
                     }
 
                     @Override
-                    public void error(String url, String string)
+                    public void error(Object url, String string)
                     {
 
                     }
@@ -1103,7 +1103,7 @@ public class ParkingOutNOPlateNoView implements View.OnClickListener, GsonCallba
     }
 
     @Override
-    public void success(String url, Object obj)
+    public void success(Object url, Object obj, int intParam)
     {
         L.e("success:" + url + "####" + obj.toString());
         if (obj == null) return;
@@ -1219,7 +1219,7 @@ public class ParkingOutNOPlateNoView implements View.OnClickListener, GsonCallba
     }
 
     @Override
-    public void error(String url, String string)
+    public void error(Object url, String string)
     {
 
     }

@@ -2,6 +2,8 @@ package com.example.administrator.myparkingos.model.beans;
 
 import android.graphics.Bitmap;
 
+import com.example.administrator.myparkingos.constant.QueueMessageTypeEnum;
+
 /**
  * Created by Administrator on 2017-03-09.
  */
@@ -35,23 +37,10 @@ public class ModelNode<T>
      */
     public Bitmap picture;
 
-    public E_CarInOutType type;
+    public QueueMessageTypeEnum type;
 
     public T data;
     public String momo; // 备用
-
-    public enum E_CarInOutType
-    {
-        CAR_IN_TYPE_auto,           // 手动入场
-        CAR_IN_TYPE_auto_noPlate,   // 无牌车手动入场
-        CAR_IN_TYPE_recognition,     // 车牌识别入场
-
-        CAR_OUT_TYPE_auto,          // 手动出场
-        CAR_OUT_TYPE_auto_noPlate,   // 无牌车手动出场
-        CAR_OUT_TYPE_recognition,     // 车牌识别出场
-
-        CAR_INOUT_TYPE_recognition   // 相机自动识别
-    }
 
     public ModelNode()
     {

@@ -680,6 +680,11 @@ public class Model
     /// </summary>
     public static boolean bTemp8 = true;
 
+    /// <summary>
+    /// 临时车入口不开闸时 播报语音类型
+    /// </summary>
+    public static boolean bAutoTemp = false;
+
     public static class StructChannel
     {
         public int iInOut;  //   入出类型。0为入，1为出
@@ -927,7 +932,7 @@ public class Model
                 .get(resultUrl, new GsonCallback<>(GetCheDaoSetResp.class, new GsonCallback.Listener()
                 {
                     @Override
-                    public void success(String url, Object o)
+                    public void success(Object url, Object o, int intParam)
                     {
                         L.e("success" + url + "<----->" + o.toString());
                         GetCheDaoSetResp resp = (GetCheDaoSetResp) o;
@@ -964,7 +969,7 @@ public class Model
                     }
 
                     @Override
-                    public void error(String url, String string)
+                    public void error(Object url, String string)
                     {
 
                     }

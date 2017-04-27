@@ -17,11 +17,15 @@ import com.example.administrator.mydistributedparkingos.R;
 import com.example.administrator.myparkingos.constant.CR;
 import com.example.administrator.myparkingos.constant.ColumnName;
 import com.example.administrator.myparkingos.constant.ConstantSharedPrefs;
+import com.example.administrator.myparkingos.constant.DeviceStringTool;
 import com.example.administrator.myparkingos.constant.JsonSearchParam;
 import com.example.administrator.myparkingos.constant.OpenWayEnum;
 import com.example.administrator.myparkingos.constant.OrderField;
 import com.example.administrator.myparkingos.constant.PlateColorEnum;
+import com.example.administrator.myparkingos.constant.QueueMessageTypeEnum;
 import com.example.administrator.myparkingos.constant.RCodeEnum;
+import com.example.administrator.myparkingos.easythread.Callback;
+import com.example.administrator.myparkingos.easythread.EasyThread;
 import com.example.administrator.myparkingos.model.GetServiceData;
 import com.example.administrator.myparkingos.model.MonitorRemoteRequest;
 import com.example.administrator.myparkingos.model.RequestByURL;
@@ -43,6 +47,7 @@ import com.example.administrator.myparkingos.model.requestInfo.GetCardTypeDefReq
 import com.example.administrator.myparkingos.model.requestInfo.GetCheDaoSetReq;
 import com.example.administrator.myparkingos.model.requestInfo.GetNetCameraSetReq;
 import com.example.administrator.myparkingos.model.requestInfo.GetParkingInfoReq;
+import com.example.administrator.myparkingos.model.requestInfo.GetXXXCommonReq;
 import com.example.administrator.myparkingos.model.requestInfo.SetCarInConfirmReq;
 import com.example.administrator.myparkingos.model.requestInfo.SetCarInReq;
 import com.example.administrator.myparkingos.model.requestInfo.SetCarInWithoutCPHReq;
@@ -51,12 +56,14 @@ import com.example.administrator.myparkingos.model.requestInfo.SetCarOutWithoutE
 import com.example.administrator.myparkingos.model.requestInfo.UpdateChargeAmountReq;
 import com.example.administrator.myparkingos.model.requestInfo.UpdateChargeInfoReq;
 import com.example.administrator.myparkingos.model.requestInfo.UploadCaptureImageReq;
+import com.example.administrator.myparkingos.model.responseInfo.AddOptLogResp;
 import com.example.administrator.myparkingos.model.responseInfo.CancelChargeResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetCarInResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetCarOutResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetCardIssueResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetCardTypeDefResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetCheDaoSetResp;
+import com.example.administrator.myparkingos.model.responseInfo.GetLedSettingResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetNetCameraSetResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetParkingInfoResp;
 import com.example.administrator.myparkingos.model.responseInfo.GetRightsByGroupIDResp;
@@ -82,6 +89,9 @@ import com.example.administrator.myparkingos.util.SDCardUtils;
 import com.example.administrator.myparkingos.util.T;
 import com.example.administrator.myparkingos.util.TimeConvertUtils;
 import com.example.administrator.myparkingos.volleyUtil.callback.GsonCallback;
+import com.example.sfmudpsdk_android.ConstantClass;
+import com.example.sfmudpsdk_android.UDPSendbll;
+import com.example.sfmudpsdk_android.VoiceInYWModel;
 import com.jude.http.RequestManager;
 import com.jude.http.RequestMap;
 import com.vz.tcpsdk;
@@ -129,6 +139,12 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
     public static final String METHOD_GETPARKINGINFO = "GetParkingInfo";
     public static final String METHOD_UPLOADCAPTUREIMAGE = "UploadCaptureImage";
     public static final String METHOD_SETCARINWITHOUTCPH = "SetCarInWithoutCPH";
+    public static final String METHOD_SETCARIN = "SetCarIn";
+    public static final String METHOD_ADDOPTLOG = "AddOptLog";
+
+
+    private UDPSendbll udpSendbll;
+    private EasyThread executor;
 
 
     @Override
@@ -239,7 +255,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
                          * 获取进场的数据返回，然后将数据放到界面上
                          */
                         SetCarInReq setCarInReq = initSetCarIn(CPH, ctrlNumber);
-                        sendModeToQueue(ModelNode.E_CarInOutType.CAR_IN_TYPE_auto, CPH, setCarInReq, index);
+                        sendModeToQueue(QueueMessageTypeEnum.QUEUE_CAR_IN_TYPE_AUTO, CPH, setCarInReq, index);
                     }
 
                     /**
@@ -348,7 +364,8 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
                     public void onCarOutBtnOk(final String CPH) // 车辆出场，直接发送出场消息
                     {
                         SetCarOutReq req = initSetCarOutReq(CPH, ctrlNumber);
-                        sendModeToQueue(ModelNode.E_CarInOutType.CAR_OUT_TYPE_auto, CPH, req, index);
+
+                        sendModeToQueue(QueueMessageTypeEnum.QUEUE_CAR_OUT_TYPE_AUTO, CPH, req, index);
                     }
 
                     @Override
@@ -748,7 +765,9 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
             @Override
             public void onClickChargeRecordBtn()
             {
-                testUploadPicture();
+//                testUploadPicture();
+//                udpSendbll.OpenGate("192.168.2.250", 9);
+//                udpSendbll.VoiceLoad("192.168.2.250", 9, ConstantClass.VoiceEnum.WelCome);
             }
 
             /**
@@ -760,6 +779,8 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
 
             }
         };
+
+        udpSendbll = new UDPSendbll();
 
         tcpsdk.getInstance().setup();
         Model.sImageSavePath = SDCardUtils.getDiskCacheDirPath(this, ""); // "D:\\CaptureImage\\1\\20170410\\612f52e2-eb20-4224-9aeb-3bfed799e35d20170410191108cgo.jpg
@@ -777,6 +798,25 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
         exe = new ExeUtil();
         queueTask = new QueueTask(true);
         queueTask.start();
+
+        initEasyThread();
+    }
+
+    private void executeByThreadPools(String threadName, ThreadCallback threadCallback, Runnable runnable)
+    {
+        if (executor == null) return;
+        executor.name(threadName)
+                .callback(threadCallback)
+                .execute(runnable);
+    }
+
+    private void initEasyThread()
+    {
+        executor = EasyThread.Builder
+                .fixed(Runtime.getRuntime().availableProcessors() * 2 + 1) // cpu的效率得到最大程度执行
+                .priority(Thread.MAX_PRIORITY)
+                .name("thread name")
+                .build();
     }
 
     private int getCtrlIndexByInoutName(String currentText)
@@ -825,7 +865,17 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
         return req;
     }
 
-    private void sendModeToQueue(ModelNode.E_CarInOutType type, String cph, Object data, int index)
+    private void sendModeToQueue(QueueMessageTypeEnum type, Object data, int index)
+    {
+        ModelNode modelNode = new ModelNode();
+        modelNode.data = data;
+        modelNode.type = type;
+        modelNode.setiDzIndex(index);
+        ConcurrentQueueHelper.getInstance().put(modelNode);
+    }
+
+
+    private void sendModeToQueue(QueueMessageTypeEnum type, String cph, Object data, int index)
     {
         ModelNode modelNode = new ModelNode();
         modelNode.data = data;
@@ -902,7 +952,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
     }
 
     /**
-     * 根据车辆进场，提示发送语音数据
+     * 根据车辆进场，提示发送语音数据和开闸
      * 注意返回数据的车牌和原始的车牌号可能不同
      *
      * @param setCarInResp
@@ -910,225 +960,130 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
     private boolean dealSetCarInResponse(final SetCarInResp setCarInResp, final String srcCPH, final int index, final PlateColorEnum colorType)
     {
         RCodeEnum rCodeEnum = RCodeEnum.valueOf(Integer.parseInt(setCarInResp.getRcode()));
-        final SetCarInResp.DataBean data = setCarInResp.getData();
+        final SetCarInResp.DataBean carIn = setCarInResp.getData();
+
+        boolean isMonthBeOverdue = false;
+        boolean isMonthFull = false;
+
         switch (rCodeEnum)
         {
-            case BlackList:
+            case BlackList:// 车牌号 + 禁止入场请与管理处联系
             {
-                /**
-                 * 1， 右上角显示警告信息
-                 */
+                String detectString = prepareDetectString(carIn.getCPH(), srcCPH);
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume
-                        , prepareDetectString(data.getCPH(), srcCPH) + ":" + prepareDetectString(data.getBlackReason(), ""));
-                /**
-                 * 2，发送语音
-                 */
+                        , detectString + ":" + prepareDetectString(carIn.getBlackReason(), ""));
+                String chineseCPH = DeviceStringTool.GetChineseCPH(detectString) + "D2AF";
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_BLACKLIST, chineseCPH, index);
                 return false;
             }
-            case NoThisLanePermission:
+            case NoThisLanePermission:// 无授权请与管理处联系
             {
-                /**
-                 * 1，右上角显示警告信息
-                 */
-                updateCarHintToFragment(MSG_CarHintInfoAfterResume, "在 " + data.getCtrlNumber() + " 号机上无权限！");
-
-                /**
-                 * 2, 右下角显示操作信息
-                 */
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo(data.getCtrlNumber() + " 号机上无权限!");
-                    }
-                });
-                /**
-                 * 发送语音
-                 */
+                updateCarHintToFragment(MSG_CarHintInfoAfterResume, "在 " + carIn.getCtrlNumber() + " 号机上无权限！");
+                parkingMonitoringView.setOperatorHintInfo(carIn.getCtrlNumber() + " 号机上无权限!");
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_NOTHISLANEPERMISSION, ConstantClass.VoiceEnum.Invalid, index);
                 return false;
             }
-            case BeOverdue:
+            case BeOverdue://已过期请与管理处联系
             {
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setCPHText(index, prepareDetectString(data.getCPH(), srcCPH));
-                        parkingMonitoringView.setOperatorHintInfo("已过期，请到管理处延期!");
-                    }
-                });
+                parkingMonitoringView.setCPHText(index, prepareDetectString(carIn.getCPH(), srcCPH));
+                parkingMonitoringView.setOperatorHintInfo("已过期，请到管理处延期!");
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "已过期，请到管理处延期!");
-                /**
-                 * 发送语音
-                 */
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_BEOVERDUE, ConstantClass.VoiceEnum.Overstayed, index);
                 return false;
             }
             case PersonalFull:
             {
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("此车禁止入场，入场车辆数已经超过车位个数");
-                    }
-                });
+                parkingMonitoringView.setOperatorHintInfo("此车禁止入场，入场车辆数已经超过车位个数");
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "此车禁止入场，入场车辆数已经超过车位个数。");
-                /**
-                 * 发送语音
-                 */
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_PERSONALFULL, "9ED2", index);
                 return false;
             }
-            case ProhibitCurrent:
+            case ProhibitCurrent://已经入场
             {
-                updateCarHintToFragment(MSG_CarHintInfoAfterResume, "此车已入场[" + data.getInOutName() + "]");
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("此车已入场[" + data.getInOutName() + "]");
-                    }
-                });
-                /**
-                 * 发送语音
-                 */
+                updateCarHintToFragment(MSG_CarHintInfoAfterResume, "此车已入场[" + carIn.getInOutName() + "]");
+                parkingMonitoringView.setOperatorHintInfo("此车已入场[" + carIn.getInOutName() + "]");
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_PROHIBITCURRENT, ConstantClass.VoiceEnum.Alreadyadmission, index);
                 return false;
             }
             case ProhibitCutOff:
             {
-                /**
-                 * 发送具体语音
-                 */
-                if (getCheDaoSetResp.getData().get(CheDaoIndex[index]).getInOut() == CAR_CHANNEL_IN)
+                String strsLoad;
+                if (Model.Channels[index].iInOut == 0)
                 {
-
+                    if (Model.bAutoTemp)
+                    {
+                        strsLoad = "ADB6";
+                    }
+                    else
+                    {
+                        strsLoad = "ADD2";
+                    }
                 }
+                else
+                {
+                    strsLoad = "ADD4";
+                }
+
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_PROHIBITCUTOFF, strsLoad, index);
                 return false;
             }
             case SummaryCarFull:
             {
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "车位已满!");
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("车位已满!");
-                    }
-                });
-
-                /**
-                 * 发送语音
-                 */
+                parkingMonitoringView.setOperatorHintInfo("车位已满!");
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_CARFULL, 5, index);
                 return false;
             }
             case TemporaryCarFull:
             {
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "临时车位已满!");
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("临时车位已满!");
-                    }
-                });
-
-                /**
-                 * 发送语音
-                 */
+                parkingMonitoringView.setOperatorHintInfo("临时车位已满!");
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_CARFULL, 5, index);
                 return false;
             }
             case MonthCarFull:
             {
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "月租车位已满!");
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("月租车位已满!");
-                    }
-                });
-
-                /**
-                 * 发送语音
-                 */
+                parkingMonitoringView.setOperatorHintInfo("月租车位已满!");
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_CARFULL, 5, index);
                 return false;
             }
             case PrepaidCarFull:
             {
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "储值车位已满!");
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("储值车位已满!");
-                    }
-                });
+                parkingMonitoringView.setOperatorHintInfo("储值车位已满!");
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_CARFULL, 5, index);
+
                 return false;
             }
             case BalanceNotEnough:
             {
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "余额不足，请先充值!");
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("余额不足，请先充值!");
-                    }
-                });
-
-                /**
-                 * 发送语音
-                 */
+                parkingMonitoringView.setOperatorHintInfo("余额不足，请先充值!");
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_BALANCENOTENOUGH, null, index);
                 return false;
             }
             case AllCharacterSamePlateNoHandle:
             {
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("字符相同的车牌不处理!");
-                    }
-                });
+                parkingMonitoringView.setOperatorHintInfo("字符相同的车牌不处理!");
                 return false;
             }
             case AllLetterPlateNoHandle:
             {
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("全字母车牌不处理!");
-                    }
-                });
+                parkingMonitoringView.setOperatorHintInfo("全字母车牌不处理!");
                 return false;
             }
             case TemporaryCarNotInSmall:
             {
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "临时车禁止驶入小车场!");
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("临时车禁止驶入小车场!");
-                    }
-                });
+                parkingMonitoringView.setOperatorHintInfo("临时车禁止驶入小车场!");
 
-                GetServiceData.getInstance().requestAddOptLog("在线监控:FillOutData", "临时车禁止驶入小车场" + data.getCardNO());
-                /**
-                 * 发送语音
-                 */
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_TEMPORARYCARNOTINSMALL, "ADD2", index);
+
+                String resultUrl = GetServiceData.getResultUrl(METHOD_ADDOPTLOG, CR.initAddOptLog("在线监控:FillOutData", "临时车禁止驶入小车场" + carIn.getCardNO()));
+                RequestManager
+                        .getInstance()
+                        .get(resultUrl, new GsonCallback<>(AddOptLogResp.class, this, resultUrl));
                 return false;
             }
             case ConfirmCutOff: // 确认开闸模式
@@ -1136,100 +1091,75 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
                 // 显示Image图像  // 这里的弹出框，有多少就弹出多少个
                 popuTempCPHView(setCarInResp, srcCPH, "确定开闸", index);
                 // 发送语音
+                String substring = carIn.getCardType().substring(0, 3);
+                String loadField = "";
+                if (substring.equals("Mth"))
+                {
+                    loadField = "ABD3";
+                }
+                else if (substring.equals("Tmp") || substring.equals("Mtp"))
+                {
+                    loadField = "ADD3";
+                }
+
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_CONFIRMCUTOFF, loadField, index);
                 return false;
             }
             case MonthCarFullConfirmCutOff:
             {
                 // 显示Image图像
-
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "月租车位已满!");
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("月租车位已满!");
-                    }
-                });
+                parkingMonitoringView.setOperatorHintInfo("月租车位已满!");
                 popuTempCPHView(setCarInResp, srcCPH, "车场满位，确定开闸", index);
-                // 发送语音
+
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_CARFULLCONFIRMCUTOFF, 5, index);
                 return false;
             }
             case TemporaryCarFulllConfirmCutOff:
             {
                 // 显示Image图像
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "临时车位已满!");
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("临时车位已满!");
-                    }
-                });
+                parkingMonitoringView.setOperatorHintInfo("临时车位已满!");
 
                 popuTempCPHView(setCarInResp, srcCPH, "车场满位，确定开闸", index);
-                // 发送语音
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_CARFULLCONFIRMCUTOFF, 5, index);
                 return false;
             }
             case PrepaidCarFullConfirmCutOff:
             {
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "储值车位已满!");
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("储值车位已满!");
-                    }
-                });
+                parkingMonitoringView.setOperatorHintInfo("储值车位已满!");
+
                 popuTempCPHView(setCarInResp, srcCPH, "车场满位，确定开闸", index);
-                // 发送语音
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_CARFULLCONFIRMCUTOFF, 5, index);
                 return false;
             }
             case SummaryCarFullConfirmCutOff:
             {
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "车位已满!");
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("车位已满!");
-                    }
-                });
+                parkingMonitoringView.setOperatorHintInfo("车位已满!");
+
                 popuTempCPHView(setCarInResp, srcCPH, "车场满位，确定开闸", index);
-                // 发送语音
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_CARFULLCONFIRMCUTOFF, 5, index);
                 return false;
             }
             case MthBeOverdueToTmpCharge:
             {
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "已过期,临时车,请通行");
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("已过期,临时车,请通行");
-                    }
-                });
-                // 发送语音
-//                isMonthBeOverdue = true;
+                parkingMonitoringView.setOperatorHintInfo("已过期,临时车,请通行");
+
+                sendModeToQueue(QueueMessageTypeEnum.queue_MthBeOverdueToTmpCharge, "6CADAC", index);
+                isMonthBeOverdue = true;
                 break;
             }
             case MthFullToTmpCharge:
             {
                 updateCarHintToFragment(MSG_CarHintInfoAfterResume, "车位占用，临时车，请通行");
-                mHandler.post(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        parkingMonitoringView.setOperatorHintInfo("车位占用，临时车，请通行");
-                    }
-                });
+                parkingMonitoringView.setOperatorHintInfo("车位占用，临时车，请通行");
                 // 发送语音
-//                isMonthFull = true;
+                isMonthFull = true;
+                String strsLoad = DeviceStringTool.GetChineseCPH(carIn.getCPH()) + "9EADAC";
+                sendModeToQueue(QueueMessageTypeEnum.queue_MthBeOverdueToTmpCharge, strsLoad, index);
                 break;
             }
             case RepeatAdmission:
@@ -1246,11 +1176,43 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
                 return false;
         }
 
-        String cardType = data.getCardType();
-        OpenWayEnum openWayEnum = OpenWayEnum.valueOf(Integer.parseInt(data.getOpenMode()));
+        final String cardType = carIn.getCardType();
+        OpenWayEnum openWayEnum = OpenWayEnum.valueOf(Integer.parseInt(carIn.getOpenMode()));
         if (cardType.length() > 3)
         {
-            if (cardType.substring(0, 3).equals("Tmp")
+            String strCardCW = carIn.getCarPlace() == null ? "" : carIn.getCarPlace();
+            if ((
+                    cardType.substring(0, 3).equals("Mth")
+                            || cardType.substring(0, 3).equals("Str")
+                            || cardType.substring(0, 3).equals("Fre")
+            ) && openWayEnum == OpenWayEnum.AutoCutOff)
+            {
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_OPENGATE, null, index);
+
+                if (isMonthBeOverdue || isMonthFull)
+                {
+
+                }
+                else
+                {
+                    if (strCardCW.equals(""))
+                    {
+                        strCardCW = "FFFF";
+                    }
+                    if (strCardCW.length() != 4)
+                    {
+                        String CarCW = strCardCW;
+                        for (int i = 0; i < 4 - strCardCW.length(); i++)
+                        {
+                            CarCW = "0" + CarCW;
+                        }
+                        strCardCW = CarCW.substring(CarCW.length() - 4, CarCW.length());
+                    }
+
+                    sendModeToQueue(QueueMessageTypeEnum.QUEUE_VOICEINYW, initVoiceInYW(carIn, cardType, strCardCW, (int) carIn.getBalance()), index);
+                }
+            }
+            else if (cardType.substring(0, 3).equals("Tmp")
                     || cardType.substring(0, 3).equals("Mtp") // 月临车
                     /*|| bReadAuto == true*/) // bReadAuto 表示读卡还是识别???
 
@@ -1258,10 +1220,12 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
                 switch (openWayEnum)
                 {
                     case AutoCutOff:
-                        // 发送语音
+                        strCardCW = "FFFF";
+                        sendModeToQueue(QueueMessageTypeEnum.QUEUE_OPENGATE, null, index);
+                        sendModeToQueue(QueueMessageTypeEnum.QUEUE_VOICEINYW, initVoiceInYW(carIn, cardType, strCardCW, 0), index);
                         break;
                     case ConfirmCutOff:
-                        //显示图片
+                        sendModeToQueue(QueueMessageTypeEnum.QUEUE_CONFIRMCUTOFF, "ADD3", index);
                         popuTempCPHView(setCarInResp, srcCPH, "临时车确定开闸", index);
                         break;
                     default:
@@ -1273,32 +1237,198 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
             {
                 //显示图片
                 popuTempCPHView(setCarInResp, srcCPH, "月租车确定开闸", index);
-                // 发送语音
+                sendModeToQueue(QueueMessageTypeEnum.QUEUE_CONFIRMCUTOFF, "ABD3", index);
             }
-
             if (openWayEnum == OpenWayEnum.NoCutOff && cardType.substring(0, 3).equals("Tmp"))
             {
-                // 临时车不开闸
             }
             else
             {
-                // 和控制板发送数据
+                SurplusCPH(index, carIn.getCPH(), carIn.getCardType(), carIn.getRemainingPlaceCount(), carIn.getBalance(), 0);
             }
-
-            // 显示picture 进出口图片
-
-            // 更新收费数据
-            mHandler.post(new Runnable()
+//            ShowImage(index, carIn.getImagePath());
+            if (Model.Channels[index].iInOut == 0)
             {
-                @Override
-                public void run()
-                {
-                    updateSetCarIn(data);
-                }
-            });
-
+                ImageProcessing(filesJpg, carIn.getImagePath(), index, true, false);//上传图片到服务器
+            }
+            else
+            {
+                ImageProcessing(filesJpg, carIn.getImagePath(), index, true, false);
+            }
+            // 更新收费数据
+            updateSetCarIn(carIn);
         }
         return true;
+    }
+
+    private void SurplusCPH(int laneIndex, String plateNumber, String cardType, int surplusCarCount, float balance, float charge)
+    {
+        //请求SurplusCar的数据
+        GetXXXCommonReq req = new GetXXXCommonReq();
+        JsonSearchParam.get
+
+        List<LedSetting> lstLS = gsd.GetSurplusCar(Model.Channels[laneIndex].iCtrlID);
+
+
+        foreach (var ls in lstLS)
+        {
+            string showWay = ls.ShowWay;
+            string SendSum, StrSum = "";
+            bool bMW = false;
+            if (showWay.Contains("3"))
+            {
+                if (showWay.Contains("4"))
+                {
+                    if (plateNumber.Length == 7 && plateNumber != "0000000" && plateNumber != "6666666" && plateNumber != "京000000" && plateNumber != "8888888" && plateNumber != "")
+                    {
+                        StrSum = plateNumber;
+                    }
+                }
+                //不显示车牌
+                else
+                {
+                    int iCoutRemainCar = 0;
+                    if (Model.iFreeCardNoInPlace == 1 && cardType.Substring(0, 3) == "Fre")
+                    {
+                        iCoutRemainCar = surplusCarCount;
+                    }
+                    else
+                    {
+                        if (Model.Channels[laneIndex].iInOut == 0)
+                        {
+                            iCoutRemainCar = surplusCarCount - 1;
+                        }
+                        else
+                        {
+                            iCoutRemainCar = surplusCarCount + 1;
+                        }
+                    }
+
+                    if (iCoutRemainCar < 1)
+                    {
+                        if (ls.CPHEndStr == "")
+                        {
+                            if (ls.Pattern == "2")
+                            {
+                                StrSum = iCoutRemainCar.ToString("0000");
+                            }
+                            else if (ls.Pattern == "8")
+                            {
+                                StrSum = "剩余车位:" + iCoutRemainCar.ToString("000");
+                            }
+                            else
+                            {
+                                StrSum = "空车位" + iCoutRemainCar.ToString("000");
+                            }
+                        }
+                        else
+                        {
+                            StrSum = ls.CPHEndStr + iCoutRemainCar.ToString("000");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (showWay.Contains("4"))
+                {
+                    if (plateNumber.Length == 7 && plateNumber != "0000000" && plateNumber != "6666666" && plateNumber != "京000000" && plateNumber != "8888888" && plateNumber != "")
+                    {
+                        StrSum = plateNumber;
+                    }
+                }
+            }
+
+            if (showWay.Contains("6"))
+            {
+                if ((cardType.Substring(0, 3) == "Tmp" || cardType.Substring(0, 3) == "Str") && Model.Channels[laneIndex].iInOut == 1)
+                {
+                    string money = "此次收费" + charge + "元";
+                    StrSum += StrSum != "" ? " " + money : money;
+                    if (cardType.Substring(0, 3) == "Str")
+                    {
+                        StrSum += "余额" + balance + "元";
+                    }
+                }
+            }
+            if (showWay.Contains("5") && (!showWay.Contains("6")
+                    || (cardType.Substring(0, 3) != "Tmp"
+                    && cardType.Substring(0, 3) != "Str")))
+            {
+                StrSum += StrSum != "" ? " " + ls.CPHEndStr : ls.CPHEndStr;
+            }
+            if (StrSum != "")
+            {
+                string Jstrs = "";
+                if (bMW)
+                {
+                    Jstrs = "01" + ls.Speed + "00" + ls.Color + ls.SumTime + CR.GetStrTo16(StrSum);
+                }
+                else
+                {
+                    Jstrs = ls.Move + ls.Speed + ls.StopTime + ls.Color + ls.SumTime + CR.GetStrTo16(StrSum);
+                }
+
+                int sum = 0;
+                byte[] array = CR.GetByteArray(Jstrs);
+                foreach (byte by in array)
+                {
+                    sum += by;
+                }
+                sum = sum % 256;
+
+                SendSum = "CC" + Convert.ToInt32(ls.SurplusID).ToString("X2") + "BB5154" + sum.ToString("X2") + Jstrs + "FF";
+                if (Model.Channels[laneIndex].iXieYi == 1)
+                {
+                    SedBll sedBll = new SedBll(Model.Channels[laneIndex].sIP, 1007, 1005);
+                    sedBll.SurplusCtrlLedShow(Convert.ToByte(Model.Channels[laneIndex].iCtrlID), SendSum, 1);
+                }
+            }
+        }
+
+        lostFlag = 0;
+    }
+
+    @NonNull
+    private VoiceInYWModel initVoiceInYW(SetCarInResp.DataBean data, String cardType, String strCardCW, int balance)
+    {
+        VoiceInYWModel inGateModel = new VoiceInYWModel();
+        inGateModel.CarTypeenum = getCardTypeEnum(cardType.substring(0, 3));
+        inGateModel.strCPH = data.getCPH();
+        inGateModel.CYkDay = data.getRemainingDays() < 0 ? 0 : data.getRemainingDays();
+        inGateModel.strCardCW = strCardCW;
+        inGateModel.iSurplus = summary0.getSurplusCarCount();
+        inGateModel.CCzkMoney = balance;
+        return inGateModel;
+    }
+
+    private ConstantClass.CarType getCardTypeEnum(String cardTypeStr)
+    {
+        if (cardTypeStr.equals("Mth"))
+        {
+            return ConstantClass.CarType.Month;
+        }
+        else if (cardTypeStr.equals("Tmp"))
+        {
+            return ConstantClass.CarType.Temp;
+        }
+        else if (cardTypeStr.equals("Fre"))
+        {
+            return ConstantClass.CarType.Free;
+        }
+        else if (cardTypeStr.equals("Str"))
+        {
+            return ConstantClass.CarType.Store;
+        }
+        else if (cardTypeStr.equals("Mtp"))
+        {
+            return ConstantClass.CarType.MonthTemp;
+        }
+        else
+        {
+            L.e("getCardTypeEnum(String cardTypeStr) 出现错误:" + cardTypeStr);
+            return ConstantClass.CarType.Temp;
+        }
     }
 
     private void popuTempCPHView(final SetCarInResp setCarInResp, final String srcCPH, String title, final int index)
@@ -1672,7 +1802,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
         String resultUrl = GetServiceData.getInstance().getResultUrl(METHOD_GETNETCAMERASET, req);
         RequestManager
                 .getInstance()
-                .get(resultUrl, new GsonCallback<>(GetNetCameraSetResp.class, this, String.valueOf(i)));
+                .get(resultUrl, new GsonCallback<>(GetNetCameraSetResp.class, this, resultUrl, i));
     }
 
     /**
@@ -2217,6 +2347,8 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
             queueTask.end();
         ConcurrentQueueHelper.getInstance().destory();
         super.onDestroy();
+
+        executor.shutdown();
     }
 
 
@@ -2232,23 +2364,25 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
         super.onStop();
     }
 
-    // 成功的获取返回值
+    // 处理无牌车入场的服务器数据应答
+    private void dealSetCarInSetCarInWithoutCPHResponse(Object obj)
+    {
+        SetCarInWithoutCPHResp setCarInWithoutCPHResp = (SetCarInWithoutCPHResp) obj;
+
+        dealCarInWithOutCPH(setCarInWithoutCPHResp);
+        // 更新画面提示信息
+        updateCarHintToFragment(MSG_CarHintInfoAfterResume, setCarInWithoutCPHResp.getMsg());
+        updateCarChargeToFragment(MSG_SETCarInWithOutCPH, setCarInWithoutCPHResp.getData());
+    }
+
     @Override
-    public void success(String url, Object obj)
+    public void success(Object data, Object obj, int intParam)
     {
         if (obj == null) return;
-        L.e("success" + "<--->" + url + "," + obj.toString());
-
+        L.e("success" + data + "<--->" + obj.toString());
         if (obj instanceof SetCarInWithoutCPHResp) //无牌车入场
         {
-            SetCarInWithoutCPHResp setCarInWithoutCPHResp = (SetCarInWithoutCPHResp) obj;
-
-            dealCarInWithOutCPH(setCarInWithoutCPHResp);
-
-            // 更新画面提示信息
-            updateCarHintToFragment(MSG_CarHintInfoAfterResume, setCarInWithoutCPHResp.getMsg());
-            updateCarChargeToFragment(MSG_SETCarInWithOutCPH, setCarInWithoutCPHResp.getData());
-
+            dealSetCarInSetCarInWithoutCPHResponse(obj);
         }
         else if (obj instanceof GetCardTypeDefResp)
         {
@@ -2289,16 +2423,18 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
         else if (obj instanceof GetNetCameraSetResp)//播放相应的视频数据即可
         {
             GetNetCameraSetResp getNetCameraSetResp = (GetNetCameraSetResp) obj;
-            int index = Integer.parseInt(url);
+            int index = intParam;
 
-            List<GetNetCameraSetResp.DataBean> data = getNetCameraSetResp.getData();
-            String videoType = data.get(0).getVideoType();
+            List<GetNetCameraSetResp.DataBean> getNetCameraSetRespData = getNetCameraSetResp.getData();
+            if (data == null || getNetCameraSetRespData.size() == 0) return; // 数据可能为空
+
+            String videoType = getNetCameraSetRespData.get(0).getVideoType();
             switch (videoType)
             {
                 case "ZNYKTY5":
                 {
                     L.i("videoType:" + videoType + " index:" + index);
-                    parkingMonitoringView.playVideoByIndex(index, data.get(0).getVideoIP(), mHandler);
+                    parkingMonitoringView.playVideoByIndex(index, getNetCameraSetRespData.get(0).getVideoIP(), mHandler);
                     break;
                 }
             }
@@ -2317,11 +2453,22 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
         {
             getParkingInfoResp = (GetParkingInfoResp) obj;
         }
+        else if (obj instanceof SetCarInResp)
+        {
+            SetCarInResp setCarInResp = (SetCarInResp) obj;
+            if (setCarInResp == null || setCarInResp.getData() == null)
+            {
+                return;
+            }
+
+            SetCarInReq setCarInReq = (SetCarInReq) data;
+            dealSetCarInResponse(setCarInResp, setCarInReq.getCPH(), intParam, PlateColorEnum.valueOf(setCarInReq.getCPColor()));
+        }
     }
 
 
     @Override
-    public void error(String url, String string)
+    public void error(Object url, String string)
     {
 
     }
@@ -2776,25 +2923,22 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
                     final ModelNode modelNode = ConcurrentQueueHelper.getInstance().get();
                     if (modelNode != null)
                     {
-                        L.i("###　接受到车牌数据:" + modelNode.toString());
+                        L.i("###　接受到车牌数据 ###" + modelNode.toString());
                         switch (modelNode.type)
                         {
-                            case CAR_IN_TYPE_auto: // 手动输入车牌
-                                if (requestUrlUpdateUiWhenSetIn((SetCarInReq) modelNode.data, modelNode.getiDzIndex(), PlateColorEnum.Unknown) >= 0)
+                            case QUEUE_CAR_IN_TYPE_AUTO: // 手动输入车牌
+
+                                requestUrlUpdateUiWhenSetIn((SetCarInReq) modelNode.data, modelNode.getiDzIndex(), PlateColorEnum.Unknown);
+                                mHandler.post(new Runnable()
                                 {
-                                    String strFileJpg = modelNode.getStrFileJpg();
-                                    final Bitmap bitmap = BitmapUtils.fileToBitmap(strFileJpg);
-                                    mHandler.post(new Runnable()
+                                    @Override
+                                    public void run()
                                     {
-                                        @Override
-                                        public void run()
-                                        {
-                                            dealCPHInfoFromCamera(modelNode.getiDzIndex(), modelNode.getStrCPH(), bitmap, CAR_CHANNEL_IN);
-                                        }
-                                    });
-                                }
+                                        dealCPHInfoFromCamera(modelNode.getiDzIndex(), modelNode.getStrCPH(), BitmapUtils.fileToBitmap(modelNode.getStrFileJpg()), CAR_CHANNEL_IN);
+                                    }
+                                });
                                 break;
-                            case CAR_IN_TYPE_auto_noPlate:// 无牌车手动输入车牌
+                            case QUEUE_CAR_IN_TYPE_AUTO_NOPLATE:// 无牌车手动输入车牌
 
                                 requestUrlRequestWhenNoPlateIn((SetCarInWithoutCPHReq) modelNode.data);
 
@@ -2808,7 +2952,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
                                     }
                                 });
                                 break;
-                            case CAR_OUT_TYPE_auto: // 手动接收的车辆出场
+                            case QUEUE_CAR_OUT_TYPE_AUTO: // 手动接收的车辆出场
                                 if (requestUrlUpdateUIWhenSetCarOut((SetCarOutReq) modelNode.data, modelNode.getiDzIndex(), PlateColorEnum.Unknown) >= 0)
                                 {
                                     String strFileJpg = modelNode.getStrFileJpg();
@@ -2823,7 +2967,7 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
                                     });
                                 }
                                 break;
-                            case CAR_INOUT_TYPE_recognition: // 相机的主动识别
+                            case QUEUE_CAR_INOUT_TYPE_RECOGNITION: // 相机的主动识别
                                 int index = modelNode.getiDzIndex();
                                 if (checkCheDaoSetRespDataInvalid()) return;
 
@@ -2836,19 +2980,15 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
                                     req.setToken(Model.token);
                                     req.setCtrlNumber(data.get(CheDaoIndex[modelNode.getiDzIndex()]).getCtrlNumber());
                                     req.setStationId(Model.stationID);
-
-                                    if (requestUrlUpdateUiWhenSetIn(req, index, PlateColorEnum.Unknown) >= 0)
+                                    requestUrlUpdateUiWhenSetIn(req, index, PlateColorEnum.Unknown);
+                                    mHandler.post(new Runnable()
                                     {
-                                        final Bitmap bitmap = modelNode.picture;
-                                        mHandler.post(new Runnable()
+                                        @Override
+                                        public void run()
                                         {
-                                            @Override
-                                            public void run()
-                                            {
-                                                dealCPHInfoFromCamera(modelNode.getiDzIndex(), modelNode.getStrCPH(), bitmap, CAR_CHANNEL_IN);
-                                            }
-                                        });
-                                    }
+                                            dealCPHInfoFromCamera(modelNode.getiDzIndex(), modelNode.getStrCPH(), modelNode.picture, CAR_CHANNEL_IN);
+                                        }
+                                    });
                                 }
                                 else if (data.get(CheDaoIndex[index]).getInOut() == CAR_CHANNEL_OUT)
                                 {
@@ -2873,6 +3013,90 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
                                     }
                                 }
                                 break;
+                            case QUEUE_BLACKLIST:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.SendCombinationVioce(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID, (String) modelNode.data);
+                                break;
+                            }
+                            case QUEUE_NOTHISLANEPERMISSION:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.VoiceLoad(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID, (ConstantClass.VoiceEnum) modelNode.data);
+                                break;
+                            }
+                            case QUEUE_BEOVERDUE:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.VoiceLoad(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID, (ConstantClass.VoiceEnum) modelNode.data);
+                                break;
+                            }
+                            case QUEUE_OPENGATE:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.OpenGate(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID);//自动开闸
+                                break;
+                            }
+                            case QUEUE_VOICEINYW:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.VoiceInYW(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID, (VoiceInYWModel) modelNode.data);
+                                break;
+                            }
+                            case QUEUE_CONFIRMCUTOFF:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.SendCombinationVioce(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID, (String) modelNode.data);
+                                break;
+                            }
+                            case QUEUE_PERSONALFULL:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.SendCombinationVioce(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID, (String) modelNode.data);
+                                break;
+                            }
+                            case QUEUE_PROHIBITCURRENT:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.ParkinglotFull(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID, (Integer) modelNode.data);
+                                break;
+                            }
+                            case QUEUE_PROHIBITCUTOFF:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.SendCombinationVioce(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID, (String) modelNode.data);
+                                break;
+                            }
+                            case QUEUE_CARFULL:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.ParkinglotFull(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID, (Integer) modelNode.data);
+                                break;
+                            }
+                            case QUEUE_BALANCENOTENOUGH:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.NoMoneyInOut(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID);
+                                break;
+                            }
+                            case QUEUE_TEMPORARYCARNOTINSMALL:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.SendCombinationVioce(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID, (String) modelNode.data);
+                                break;
+                            }
+                            case QUEUE_CARFULLCONFIRMCUTOFF:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.ParkinglotFull(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID, (Integer) modelNode.data);
+                                break;
+                            }
+                            case queue_MthBeOverdueToTmpCharge:
+                            {
+                                int dzIndex = modelNode.getiDzIndex();
+                                udpSendbll.SendCombinationVioce(Model.Channels[dzIndex].sIP, Model.Channels[dzIndex].iCtrlID, (String) modelNode.data);
+                                break;
+                            }
                             default:
                                 break;
                         }
@@ -3379,19 +3603,13 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
      * @param setCarInReq
      * @return
      */
-    private int requestUrlUpdateUiWhenSetIn(SetCarInReq setCarInReq, int index, PlateColorEnum color)
+    private void requestUrlUpdateUiWhenSetIn(SetCarInReq setCarInReq, int index, PlateColorEnum color)
     {
-        String srcCPH = setCarInReq.getCPH();
-        final SetCarInResp setCarInResp = GetServiceData.getInstance().SetCarIn(setCarInReq);
-        if (setCarInResp == null || setCarInResp.getData() == null)
-        {
-            return -1;
-        }
-
-        L.i("requestUrlUpdateUiWhenSetIn:" + srcCPH);
-        dealSetCarInResponse(setCarInResp, srcCPH, index, color);
-
-        return 0;
+        setCarInReq.setCPColor(color.getColorValue());
+        String resultUrl = GetServiceData.getResultUrl(METHOD_SETCARIN, setCarInReq);
+        RequestManager
+                .getInstance()
+                .get(resultUrl, new GsonCallback<>(SetCarInResp.class, this, setCarInReq, index));
     }
 
     /**
@@ -3430,8 +3648,6 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
     @Nullable
     private void requestUrlRequestWhenNoPlateIn(SetCarInWithoutCPHReq carInWithoutCPHReq)
     {
-        L.i("无牌车进场数据:" + carInWithoutCPHReq);
-
         String resultUrl = GetServiceData.getResultUrl(METHOD_SETCARINWITHOUTCPH, carInWithoutCPHReq);
         RequestManager
                 .getInstance()
@@ -3819,17 +4035,67 @@ public class ParkingMonitoringActivity extends AppCompatActivity implements Gson
         }).start();
     }
 
+    private void requestUploadCaptureImage()
+    {
+        UploadCaptureImageReq req = new UploadCaptureImageReq(); // 为图片下载提供支持
+        req.setToken(Model.token);
+        req.setStationId(String.valueOf(Model.stationID));
+        req.setDate(TimeConvertUtils.longToString("yyyyMMdd", System.currentTimeMillis()));
+        String resultUrl = GetServiceData.getResultUrl(METHOD_UPLOADCAPTUREIMAGE, req);
+
+        // 直接上传文件
+        Bitmap bitmap = BitmapFactory.decodeFile(SDCardUtils.getSDCardPath() + "picture.jpg");
+        InputStream inputStream = ImageUitls.bitmapToInputStream(bitmap, false);
+
+        RequestMap params = new RequestMap();
+//                params.put("file", new File(SDCardUtils.getSDCardPath() + "picture.jpg"));
+        params.put("bitmap", inputStream, "mypicture.jpg");
+        RequestManager
+                .getInstance()
+                .post(resultUrl, params, new GsonCallback<>(UploadCaptureImageResp2.class, ParkingMonitoringActivity.this, resultUrl));
+
+    }
+
+
     private void ImageProcessing(
             String localImagePath // 本地存放路径
             , String networkImagePath    // 服务器请求数据返回的路径
             , int laneIndex
             , boolean isUpload // 上传
-            , boolean isDown
+            , boolean isDown // 下载
     ) //下载
     {
 
     }
 
+
+    private void test()
+    {
+
+    }
+
+    //线程的回调
+    private class ThreadCallback implements Callback
+    {
+
+        @Override
+        public void onError(Thread thread, Throwable t)
+        {
+            L.e(String.format("线程%s运行出现异常，异常信息为：%s", thread, t.getMessage()));
+        }
+
+        @Override
+        public void onCompleted(Thread thread)
+        {
+            L.e(String.format("线程%s运行完毕", thread));
+        }
+
+        @Override
+        public void onStart(Thread thread)
+        {
+
+        }
+    }
 
 }
 

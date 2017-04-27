@@ -1,6 +1,5 @@
 package com.example.administrator.myparkingos.volleyUtil.callback;
 
-import com.example.administrator.myparkingos.util.L;
 import com.google.gson.Gson;
 
 /**
@@ -8,17 +7,29 @@ import com.google.gson.Gson;
  */
 public class GsonCallback<T> extends LinkCallback
 {
-    private String mUrl;
+    private Object mData;
     private final Gson mGson;
     private final Class<T> mClass;
+    private int mIntParam;
 
-    public GsonCallback(Class<T> clazz, Listener listener, String url)
+    public GsonCallback(Class<T> clazz, Listener listener, Object data)
     {
         mCallBack = listener;
         mGson = new Gson();
         mClass = clazz;
-        mUrl = url;
+        mData = data;
     }
+
+    public GsonCallback(Class<T> clazz, Listener listener, Object data, int intParam)
+    {
+        mCallBack = listener;
+        mGson = new Gson();
+        mClass = clazz;
+        mData = data;
+        mIntParam = intParam;
+    }
+
+
 
     @Override
     public void onRequest()
@@ -34,7 +45,7 @@ public class GsonCallback<T> extends LinkCallback
             return;
         if (mCallBack != null)
         {
-            mCallBack.success(mUrl, mGson.fromJson(s, mClass));
+            mCallBack.success(mData, mGson.fromJson(s, mClass), mIntParam);
         }
     }
 
@@ -45,15 +56,15 @@ public class GsonCallback<T> extends LinkCallback
 
         if (mCallBack != null)
         {
-            mCallBack.error(mUrl, s);
+            mCallBack.error(mData, s);
         }
     }
 
     private Listener mCallBack;
     public interface Listener<T>
     {
-        void success(String url, T t);
-        void error(String url, String string);
+        void success(Object data, T t, int paramInt);
+        void error(Object data, String string);
     }
 
 }

@@ -17,6 +17,8 @@ import java.util.Set;
 public class JsonSearchParam
 {
     private static final String ENCODE_FORMAT = "UTF-8";
+    private static Gson gson = new Gson();
+
 
     private static String getSearchParam(Map<String, String> dic, boolean isExclude, boolean isLike)
     {
@@ -40,7 +42,6 @@ public class JsonSearchParam
         ArrayList<SelectModel> selectList = new ArrayList<>();
         selectList.add(selectModel);
 
-        Gson gson = new Gson();
         String s = gson.toJson(selectList); // 转换成String
         return s;
     }
@@ -65,7 +66,6 @@ public class JsonSearchParam
         sm.getConditions().add(sm.new conditions("CardState", "=", 2, "or"));
         lstSM.add(sm);
 
-        Gson gson = new Gson(); // gson不用连续来重建
         String where = gson.toJson(lstSM);
         return URLEncoder.encode(where);
     }
@@ -121,7 +121,6 @@ public class JsonSearchParam
         sm.getConditions().add(sm.new conditions("CarParkNo", "=", parkingNO, "and"));
         lstSM.add(sm);
 
-        Gson gson = new Gson();
         String where = gson.toJson(lstSM);
         return URLEncoder.encode(where);// 编码方式，会出现乱码?
     }
@@ -150,7 +149,6 @@ public class JsonSearchParam
         sm.getConditions().add(sm.new conditions("Identifying", "like", expectedCardType + "%", "and"));
         lstSM.add(sm);
 
-        Gson gson = new Gson();
         String where = gson.toJson(lstSM);
         return URLEncoder.encode(where);// 编码方式，会出现乱码?
     }
@@ -224,7 +222,6 @@ public class JsonSearchParam
 
         lstSM.add(sm);
 
-        Gson gson = new Gson();
         String where = gson.toJson(lstSM);
         return URLEncoder.encode(where);
     }

@@ -19,6 +19,7 @@ import android.widget.Toast;
 
 import com.example.administrator.mydistributedparkingos.R;
 import com.example.administrator.myparkingos.constant.CR;
+import com.example.administrator.myparkingos.constant.QueueMessageTypeEnum;
 import com.example.administrator.myparkingos.model.beans.ModelNode;
 import com.example.administrator.myparkingos.model.beans.Model;
 import com.example.administrator.myparkingos.model.requestInfo.SetCarInWithoutCPHReq;
@@ -195,7 +196,8 @@ public class ParkingInNoPlateView implements View.OnClickListener, NiceSpinner.S
         imagePicture.setImageBitmap(bitmap);
     }
 
-    private void sendModeToQueue(ModelNode.E_CarInOutType type, String cph, Object data, int index)
+
+    private void sendModeToQueue(QueueMessageTypeEnum type, String cph, Object data, int index)
     {
         ModelNode modelNode = new ModelNode();
         modelNode.data = data;
@@ -222,7 +224,8 @@ public class ParkingInNoPlateView implements View.OnClickListener, NiceSpinner.S
         carInWithoutCPHReq.setCtrlNumber(ctrlNumber);
 
         String CPH = carInWithoutCPHReq.getCPH();
-        sendModeToQueue(ModelNode.E_CarInOutType.CAR_IN_TYPE_auto_noPlate, CPH, carInWithoutCPHReq, index);
+
+        sendModeToQueue(QueueMessageTypeEnum.QUEUE_CAR_IN_TYPE_AUTO_NOPLATE, CPH, carInWithoutCPHReq, index);
         dismiss();
     }
 

@@ -2,10 +2,17 @@ package com.example.administrator.myparkingos.constant;
 
 import android.content.Context;
 
+import com.example.administrator.myparkingos.model.beans.Model;
+import com.example.administrator.myparkingos.model.requestInfo.AddOptLog;
+import com.example.administrator.myparkingos.model.requestInfo.AddOptLogReq;
 import com.example.administrator.myparkingos.model.responseInfo.GetCardTypeDefResp;
 import com.example.administrator.myparkingos.util.RegexUtil;
 import com.example.administrator.myparkingos.util.SPUtils;
+import com.example.administrator.myparkingos.util.TimeConvertUtils;
+import com.google.gson.Gson;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -207,4 +214,35 @@ public class CR
         Matcher matcher = Pattern.compile("^[\u4E00-\u9FA5]+$").matcher(str);
         return matcher.matches();
     }
+
+    public static AddOptLogReq initAddOptLog(String menu, String content)
+    {
+        AddOptLogReq req = new AddOptLogReq();
+        req.setToken(Model.token);
+        req.setJsonModel(getAddOptLogText(menu, content));
+        return req;
+    }
+
+    private static Gson mGson = new Gson();
+    private static String getAddOptLogText(String menu, String content)
+    {
+        AddOptLog opt = new AddOptLog();
+        opt.setOptNO(Model.sUserCard);
+        opt.setUserName(Model.sUserName);
+        opt.setOptMenu(menu);
+        opt.setOptContent(content);
+        opt.setOptTime(TimeConvertUtils.longToString(System.currentTimeMillis()));
+        opt.setStationID(Model.stationID);
+
+        try
+        {
+            return URLEncoder.encode(mGson.toJson(opt), "UTF-8");
+        }
+        catch (UnsupportedEncodingException e)
+        {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 }

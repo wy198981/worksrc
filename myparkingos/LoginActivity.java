@@ -678,9 +678,8 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
         return getSysSettingObjectReq;
     }
 
-
     @Override
-    public void success(String url, Object o)
+    public void success(Object url, Object o, int intParam)
     {
         L.e("success: " + url + "<===>" + o.toString());
         if (o instanceof GetOperatorsWithoutLoginResp)
@@ -756,7 +755,7 @@ public class LoginActivity extends AppCompatActivity implements View.OnClickList
     }
 
     @Override
-    public void error(String url, String string)
+    public void error(Object url, String string)
     {
         L.i("error: " + url + "<===>" + string);
         T.showShort(LoginActivity.this, "连接服务器失败");

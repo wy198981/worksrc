@@ -15,6 +15,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.administrator.mydistributedparkingos.R;
+import com.example.administrator.myparkingos.constant.QueueMessageTypeEnum;
 import com.example.administrator.myparkingos.model.beans.Model;
 import com.example.administrator.myparkingos.model.beans.ModelNode;
 import com.example.administrator.myparkingos.util.BitmapUtils;
@@ -789,7 +790,7 @@ public class ParkingMonitoringView implements tcpsdk.OnDataReceiver
             String plateText = new String(plateResult.license, "GBK");
             ModelNode modelNode = new ModelNode();
 
-            modelNode.type = ModelNode.E_CarInOutType.CAR_INOUT_TYPE_recognition;
+            modelNode.type = QueueMessageTypeEnum.QUEUE_CAR_INOUT_TYPE_RECOGNITION;
 
             modelNode.setsDzScan("");
             modelNode.setiDzIndex(channel);
